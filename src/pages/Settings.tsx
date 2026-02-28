@@ -3,6 +3,7 @@ import { useTheme, THEMES } from "@/contexts/ThemeProvider";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Check, ExternalLink, LogOut, Mail, Lock, UserPlus, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const { themeId, setTheme } = useTheme();
@@ -18,8 +19,13 @@ export default function SettingsPage() {
     setAuthLoading(true);
     const fn = isSignUp ? signUp : signIn;
     const { error } = await fn(email, password);
-    if (error) setAuthError(error);
-    else { setEmail(""); setPassword(""); }
+    if (error) {
+      setAuthError(error);
+      toast.error("Something's burning... we'll fix it!", { description: error });
+    } else {
+      setEmail(""); setPassword("");
+      toast.success(isSignUp ? "Account created!" : "Welcome back, chef!");
+    }
     setAuthLoading(false);
   };
 
