@@ -1,0 +1,188 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-destructive: var(--destructive);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-border: var(--border);
+  --color-input-bg: var(--input-bg);
+  --color-ring: var(--accent);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+/* Light (Kitchen) — Default */
+:root {
+  --background: #FFFFFF;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --card-border: #F3F4F6;
+  --primary: #6366F1;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #374151;
+  --muted: #F9FAFB;
+  --muted-foreground: #9CA3AF;
+  --accent: #6366F1;
+  --accent-bg: #EEF2FF;
+  --success: #10B981;
+  --success-bg: #ECFDF5;
+  --warning: #F59E0B;
+  --warning-bg: #FFFBEB;
+  --destructive: #DC2626;
+  --destructive-bg: #FEF2F2;
+  --border: #F3F4F6;
+  --input-bg: #F9FAFB;
+  --radius: 0.75rem;
+}
+
+/* Dark */
+.dark {
+  --background: #111827;
+  --foreground: #F9FAFB;
+  --card: #1F2937;
+  --card-foreground: #F9FAFB;
+  --card-border: #374151;
+  --primary: #818CF8;
+  --primary-foreground: #111827;
+  --secondary: #374151;
+  --secondary-foreground: #F9FAFB;
+  --muted: #1F2937;
+  --muted-foreground: #9CA3AF;
+  --accent: #818CF8;
+  --accent-bg: #312E81;
+  --success: #34D399;
+  --success-bg: #064E3B;
+  --warning: #FBBF24;
+  --warning-bg: #78350F;
+  --destructive: #F87171;
+  --destructive-bg: #7F1D1D;
+  --border: #374151;
+  --input-bg: #1F2937;
+}
+
+/* Pink Onion */
+.pink-onion {
+  --background: #FAF5F6;
+  --foreground: #2E1318;
+  --card: #FEFCFD;
+  --card-foreground: #2E1318;
+  --card-border: #F2D9DE;
+  --primary: #D44D72;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FCE8EE;
+  --secondary-foreground: #2E1318;
+  --muted: #FDF9FA;
+  --muted-foreground: #9E7E85;
+  --accent: #D44D72;
+  --accent-bg: #FCE8EE;
+  --success: #10B981;
+  --success-bg: #ECFDF5;
+  --warning: #CC7733;
+  --warning-bg: #FFF4EB;
+  --destructive: #DC2626;
+  --destructive-bg: #FEF2F2;
+  --border: #F0D4DA;
+  --input-bg: #FDF9FA;
+}
+
+/* Terminal */
+.terminal {
+  --background: #0A120A;
+  --foreground: #66FF66;
+  --card: #131F13;
+  --card-foreground: #66FF66;
+  --card-border: #1E3B1E;
+  --primary: #33FF33;
+  --primary-foreground: #0A120A;
+  --secondary: #1E3B1E;
+  --secondary-foreground: #66FF66;
+  --muted: #111E11;
+  --muted-foreground: #55AA55;
+  --accent: #33FF33;
+  --accent-bg: #0D2A0D;
+  --success: #33FF33;
+  --success-bg: #0D2A0D;
+  --warning: #CCCC33;
+  --warning-bg: #1A1A00;
+  --destructive: #DD4444;
+  --destructive-bg: #2A0D0D;
+  --border: #1E3B1E;
+  --input-bg: #111E11;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: "DM Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Playfair Display", serif;
+  }
+}
+
+@layer components {
+  .input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    font-family: "DM Sans", system-ui, sans-serif;
+    transition: all 0.2s;
+  }
+
+  .input-field::placeholder {
+    color: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
+  }
+
+  .input-field:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: var(--accent);
+  }
+
+  .card-elevated {
+    background-color: var(--card);
+    border-radius: 1rem;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .font-display {
+    font-family: "Playfair Display", serif;
+  }
+}
