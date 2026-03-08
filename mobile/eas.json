@@ -20,7 +20,8 @@
     },
     "production": {
       "autoIncrement": true,
-      "credentialsSource": "remote"
+      "credentialsSource": "remote",
+      "node": "22.12.0"
     }
   }
 }
