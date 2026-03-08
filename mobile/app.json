@@ -1,35 +1,55 @@
 {
   "expo": {
-    "name": "ChefCalc Pro",
-    "slug": "chef-calc-pro",
+    "name": "PrepCalc",
+    "slug": "prepcalc",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "prepcalc",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#FAFAF8"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chefos.chefcalcpro"
+      "bundleIdentifier": "au.prepmi.prepcalc",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "PrepCalc needs camera access for the Anime Chef Studio feature."
+      }
     },
     "android": {
-      "package": "com.chefos.chefcalcpro",
+      "package": "au.prepmi.prepcalc",
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#FAFAF8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "extra": {
       "supabaseUrl": "https://twxysmsntweutblkfzdi.supabase.co",
-      "supabaseAnonKey": "sb_publishable_SYCJwaryXxxtirbkUynfTw_8MmWGdtJ"
-    }
+      "supabaseAnonKey": "sb_publishable_SYCJwaryXxxtirbkUynfTw_8MmWGdtJ",
+      "eas": {
+        "projectId": "9cb17d6a-6f3a-4b0a-8456-95eb991c9823"
+      }
+    },
+    "owner": "ubilo",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "PrepCalc needs camera access for the Anime Chef Studio feature."
+        }
+      ]
+    ]
   }
 }
