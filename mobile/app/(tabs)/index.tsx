@@ -11,6 +11,8 @@ import {
   Platform,
   Image,
   Alert,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -19,18 +21,24 @@ import * as Haptics from "expo-haptics";
 import {
   Settings,
   Camera,
-  ArrowUpDown,
+  Calculator,
   ArrowLeftRight,
   Clock,
-  DollarSign,
   Percent,
   Check,
-  Share2,
   Play,
   Pause,
   RotateCcw,
+  ChevronRight,
+  Columns2,
+  CreditCard,
+  Users,
+  Shield,
+  Lock,
+  X,
 } from "lucide-react-native";
 import { useTheme } from "../../src/contexts/ThemeProvider";
+import { useAuth } from "../../src/contexts/AuthProvider";
 import { joinWaitlist } from "../../src/lib/waitlist";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -39,6 +47,7 @@ type ClockMode = "clock" | "timer" | "stopwatch";
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
   const router = useRouter();
 
   // Clock state
@@ -57,9 +66,11 @@ export default function HomeScreen() {
 
   // Animations
   const glowAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const cameraFadeAnim = useRef(new Animated.Value(0)).current;
   const bubbleScale = useRef(new Animated.Value(1)).current;
+  // SLR shutter: 0 = closed, 1 = open
+  const shutterAnim = useRef(new Animated.Value(0)).current;
+  // Lens ring slow rotation
+  const lensRotate = useRef(new Animated.Value(0)).current;
 
   // Waitlist email
   const [waitlistEmail, setWaitlistEmail] = useState("");
@@ -69,6 +80,17 @@ export default function HomeScreen() {
   // Style pills
   const [selectedStyle, setSelectedStyle] = useState("Anime");
   const styles_list = ["Anime", "Ghibli", "Pixel", "Comic"];
+
+  // CTA popup (show once after first share)
+  const [showCtaPopup, setShowCtaPopup] = useState(false);
+  const [ctaEmail, setCtaEmail] = useState("");
+  const [ctaSubmitting, setCtaSubmitting] = useState(false);
+  const [ctaJoined, setCtaJoined] = useState(false);
+
+  // Bottom waitlist
+  const [waitlistEmail2, setWaitlistEmail2] = useState("");
+  const [waitlistSubmitting2, setWaitlistSubmitting2] = useState(false);
+  const [waitlistJoined2, setWaitlistJoined2] = useState(false);
 
   // Clock tick
   useEffect(() => {
@@ -119,30 +141,30 @@ export default function HomeScreen() {
       ])
     ).start();
 
-    // Shutter rotation
+    // Slow lens rotation (20s)
     Animated.loop(
-      Animated.timing(rotateAnim, {
+      Animated.timing(lensRotate, {
         toValue: 1,
-        duration: 12000,
+        duration: 20000,
         useNativeDriver: true,
       })
     ).start();
 
-    // Camera icon fade
+    // Shutter open/close loop
     Animated.loop(
       Animated.sequence([
-        Animated.timing(cameraFadeAnim, {
+        Animated.delay(2000),
+        Animated.timing(shutterAnim, {
           toValue: 1,
-          duration: 2000,
+          duration: 300,
           useNativeDriver: true,
         }),
-        Animated.delay(1000),
-        Animated.timing(cameraFadeAnim, {
+        Animated.delay(2500),
+        Animated.timing(shutterAnim, {
           toValue: 0,
-          duration: 2000,
+          duration: 300,
           useNativeDriver: true,
         }),
-        Animated.delay(1000),
       ])
     ).start();
   }, []);
@@ -208,12 +230,12 @@ export default function HomeScreen() {
 
   const TOOLS = [
     {
-      name: "Recipe Scaler",
-      desc: "Scale any recipe",
-      icon: ArrowUpDown,
+      name: "ChefCalc Pro",
+      desc: "Smart pricing with GST",
+      icon: Calculator,
       iconColor: "#16A34A",
       bgColor: "#DCFCE7",
-      route: "/tools/recipe-scaler" as const,
+      route: "/tools/calculator" as const,
     },
     {
       name: "Unit Converter",
@@ -232,14 +254,6 @@ export default function HomeScreen() {
       route: "/tools/multi-timer" as const,
     },
     {
-      name: "Cost / Portion",
-      desc: "Know your margins",
-      icon: DollarSign,
-      iconColor: "#DB2777",
-      bgColor: "#FCE7F3",
-      route: "/tools/cost-portion" as const,
-    },
-    {
       name: "Yield Calculator",
       desc: "Whole to usable %",
       icon: Percent,
@@ -249,10 +263,19 @@ export default function HomeScreen() {
     },
   ];
 
-  const spin = rotateAnim.interpolate({
+  const lensSpin = lensRotate.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
+
+  // Shutter blade scale: closed=1 (full blade), open=0.15 (retracted)
+  const bladeScale = shutterAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0.15],
+  });
+
+  // Camera icon appears when shutter opens
+  const cameraOpacity = shutterAnim;
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: colors.background }]}>
@@ -266,9 +289,11 @@ export default function HomeScreen() {
         <View style={s.header}>
           <View style={s.headerLeft}>
             <View style={s.logoWrap}>
-              <View style={[s.logoPlaceholder, { backgroundColor: "#16A34A" }]}>
-                <Text style={s.logoText}>P</Text>
-              </View>
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={s.logoImage}
+                resizeMode="cover"
+              />
             </View>
             <Text style={[s.headerTitle, { color: colors.text }]}>
               Prep<Text style={{ color: "#16A34A" }}>Calc</Text>
@@ -473,33 +498,13 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Camera Bubble */}
+        {/* SLR Camera Lens Bubble */}
         <View style={s.bubbleSection}>
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={handleBubblePress}
             style={s.bubbleOuter}
           >
-            {/* Shutter ring */}
-            <Animated.View
-              style={[
-                s.shutterRing,
-                { transform: [{ rotate: spin }] },
-              ]}
-            >
-              {[0, 60, 120, 180, 240, 300].map((deg) => (
-                <View
-                  key={deg}
-                  style={[
-                    s.shutterBlade,
-                    {
-                      transform: [{ rotate: `${deg}deg` }],
-                    },
-                  ]}
-                />
-              ))}
-            </Animated.View>
-
             {/* Glow ring */}
             <Animated.View
               style={[
@@ -511,37 +516,82 @@ export default function HomeScreen() {
               ]}
             />
 
-            {/* Green circle */}
+            {/* Lens body */}
             <Animated.View
               style={[
-                s.greenCircle,
+                s.lensBody,
                 { transform: [{ scale: bubbleScale }] },
               ]}
             >
-              {/* Logo placeholder */}
-              <View style={s.bubbleLogoWrap}>
-                <Text style={s.bubbleLogo}>P</Text>
+              {/* Rotating grip marks */}
+              <Animated.View
+                style={[
+                  s.gripRing,
+                  { transform: [{ rotate: lensSpin }] },
+                ]}
+              >
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      s.gripMark,
+                      {
+                        transform: [
+                          { rotate: `${i * 30}deg` },
+                          { translateY: -90 },
+                        ],
+                      },
+                    ]}
+                  />
+                ))}
+              </Animated.View>
+
+              {/* Aperture ring */}
+              <View style={s.apertureRing}>
+                {/* 8 shutter blades */}
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      s.blade,
+                      {
+                        transform: [
+                          { rotate: `${i * 45}deg` },
+                          { translateY: -40 },
+                          { scaleY: bladeScale },
+                        ],
+                      },
+                    ]}
+                  />
+                ))}
+
+                {/* Camera icon in centre — visible when shutter opens */}
+                <Animated.View style={[s.lensCenterIcon, { opacity: cameraOpacity }]}>
+                  <Camera size={32} color="#16A34A" strokeWidth={1.5} />
+                </Animated.View>
               </View>
 
-              {/* Camera overlay */}
-              <Animated.View
-                style={[s.cameraOverlay, { opacity: cameraFadeAnim }]}
-              >
-                <Camera size={36} color="#FFFFFF" strokeWidth={1.5} />
-                <Text style={s.cameraScanText}>AI SCAN</Text>
-              </Animated.View>
+              {/* Lens reflection highlight */}
+              <View style={s.lensReflection} />
             </Animated.View>
           </TouchableOpacity>
+
+          {/* Lock overlay when not signed in */}
+          {!user && (
+            <View style={s.lockOverlay}>
+              <Lock size={14} color="#FFFFFF" strokeWidth={2.5} />
+            </View>
+          )}
 
           <Text style={[s.bubbleTitle, { color: colors.text }]}>
             Anime Chef Studio
           </Text>
           <Text style={[s.bubbleSubtitle, { color: colors.textMuted }]}>
-            Selfie to 15s animated anime video
+            {user ? "Selfie to 15s animated anime video" : "Sign in to create your avatar"}
           </Text>
           <View style={[s.bubbleBadge, { backgroundColor: "#DCFCE7" }]}>
             <Text style={s.bubbleBadgeText}>
-              Preview free  ·  $1 to share
+              3 free · more from $0.99
             </Text>
           </View>
 
@@ -579,81 +629,102 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Quick Tools Grid */}
+        {/* Choose Your Mode */}
         <Text style={[s.sectionTitle, { color: colors.text }]}>
+          Choose Your Mode
+        </Text>
+        {[
+          {
+            name: "Yes, Chef! Challenge",
+            desc: "Split-screen: reality vs anime. Share the before and after",
+            icon: Columns2,
+            accent: "#EF4444",
+          },
+          {
+            name: "Digital Kitchen Pass",
+            desc: "Anime ID card with your title. Grill Superstar, Sauce Stallone, Pastry Picasso. Share to unlock Verified Chef",
+            icon: CreditCard,
+            accent: "#7C3AED",
+          },
+          {
+            name: "Manga Menu",
+            desc: "Turn your whole brigade into an anime squad. Group photo to manga crew",
+            icon: Users,
+            accent: "#2563EB",
+          },
+        ].map((mode) => {
+          const ModeIcon = mode.icon;
+          return (
+            <TouchableOpacity
+              key={mode.name}
+              onPress={() => {
+                tap();
+                router.push("/(tabs)/avatar");
+              }}
+              style={[
+                s.modePill,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.cardBorder,
+                  borderLeftColor: mode.accent,
+                  borderLeftWidth: 3,
+                },
+              ]}
+            >
+              <View style={[s.modePillIcon, { backgroundColor: mode.accent + "18" }]}>
+                <ModeIcon size={17} color={mode.accent} strokeWidth={2} />
+              </View>
+              <View style={s.modePillText}>
+                <Text style={[s.modePillName, { color: colors.text }]}>
+                  {mode.name}
+                </Text>
+                <Text style={[s.modePillDesc, { color: colors.textMuted }]} numberOfLines={2}>
+                  {mode.desc}
+                </Text>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Quick Tools */}
+        <Text style={[s.sectionTitle, { color: colors.text, marginTop: 20 }]}>
           Quick Tools
         </Text>
-        <View style={s.toolGrid}>
-          {TOOLS.map((tool, index) => {
-            const IconComponent = tool.icon;
-            return (
-              <TouchableOpacity
-                key={tool.name}
-                onPress={() => {
-                  tap();
-                  router.push(tool.route);
-                }}
-                style={[
-                  s.toolCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.cardBorder,
-                    width: index < 4 ? (SCREEN_WIDTH - 48) / 2 : SCREEN_WIDTH - 32,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    s.toolIconWrap,
-                    { backgroundColor: tool.bgColor },
-                  ]}
-                >
-                  <IconComponent
-                    size={22}
-                    color={tool.iconColor}
-                    strokeWidth={2}
-                  />
-                </View>
-                <Text style={[s.toolName, { color: colors.text }]}>
+        {TOOLS.map((tool) => {
+          const IconComponent = tool.icon;
+          return (
+            <TouchableOpacity
+              key={tool.name}
+              onPress={() => {
+                tap();
+                router.push(tool.route);
+              }}
+              style={[
+                s.toolPill,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.cardBorder,
+                },
+              ]}
+            >
+              <View style={[s.toolPillIcon, { backgroundColor: tool.bgColor }]}>
+                <IconComponent size={17} color={tool.iconColor} strokeWidth={2} />
+              </View>
+              <View style={s.toolPillText}>
+                <Text style={[s.toolPillName, { color: colors.text }]}>
                   {tool.name}
                 </Text>
-                <Text style={[s.toolDesc, { color: colors.textMuted }]}>
+                <Text style={[s.toolPillDesc, { color: colors.textMuted }]}>
                   {tool.desc}
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+            </TouchableOpacity>
+          );
+        })}
 
-        {/* Referral Card */}
-        <View
-          style={[
-            s.referralCard,
-            { backgroundColor: "#FFFBF0", borderColor: "#F3E8D0" },
-          ]}
-        >
-          <Text style={[s.referralTitle, { color: "#1A1A1A" }]}>
-            Share PrepCalc, Earn Credits
-          </Text>
-          <Text style={[s.referralDesc, { color: "#6B7280" }]}>
-            Every friend who downloads — you both get 5 free AI scans + priority
-            Pro access
-          </Text>
-          <View style={[s.referralCodeBox, { borderColor: "#D97706" }]}>
-            <Text style={[s.referralCode, { color: "#D97706" }]}>
-              CHEF-2026
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => tap()}
-            style={[s.referralBtn, { backgroundColor: "#D97706" }]}
-          >
-            <Share2 size={16} color="#FFFFFF" strokeWidth={2} />
-            <Text style={s.referralBtnText}>Share</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Waitlist CTA */}
+        {/* Waitlist Card — Prep Mi Student + Pro */}
         <View
           style={[
             s.waitlistCard,
@@ -666,18 +737,15 @@ export default function HomeScreen() {
             </Text>
           </View>
           <Text style={[s.waitlistTitle, { color: colors.text }]}>
-            Prep Mi Pro
-          </Text>
-          <Text style={[s.waitlistDesc, { color: colors.textMuted }]}>
-            The complete kitchen management platform for professionals
+            Prep Mi Student + Pro
           </Text>
 
           <View style={s.perksList}>
             {[
               "Priority access at launch",
               "50% off AI credits first month",
-              "Anime avatar buyers skip the queue",
-              "Free PrepSafe tier included",
+              "Avatar buyers skip the queue",
+              "Free food safety tools included",
             ].map((perk) => (
               <View key={perk} style={s.perkRow}>
                 <Check size={16} color={colors.accent} strokeWidth={2.5} />
@@ -701,40 +769,40 @@ export default function HomeScreen() {
             placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
-            value={waitlistEmail}
-            onChangeText={setWaitlistEmail}
+            value={waitlistEmail2}
+            onChangeText={setWaitlistEmail2}
           />
           <TouchableOpacity
             onPress={async () => {
               tap();
-              if (!waitlistEmail || !waitlistEmail.includes("@")) {
+              if (!waitlistEmail2 || !waitlistEmail2.includes("@")) {
                 Alert.alert("Invalid Email", "Please enter a valid email address.");
                 return;
               }
-              setWaitlistSubmitting(true);
+              setWaitlistSubmitting2(true);
               try {
-                await joinWaitlist(waitlistEmail);
-                setWaitlistJoined(true);
+                await joinWaitlist(waitlistEmail2);
+                setWaitlistJoined2(true);
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               } catch (e: any) {
                 Alert.alert("Oops", e.message || "Something went wrong.");
               } finally {
-                setWaitlistSubmitting(false);
+                setWaitlistSubmitting2(false);
               }
             }}
-            disabled={waitlistSubmitting || waitlistJoined}
+            disabled={waitlistSubmitting2 || waitlistJoined2}
             style={[
               s.waitlistBtn,
               {
-                backgroundColor: waitlistJoined ? colors.success : colors.accent,
-                opacity: waitlistSubmitting ? 0.6 : 1,
+                backgroundColor: waitlistJoined2 ? colors.success : colors.accent,
+                opacity: waitlistSubmitting2 ? 0.6 : 1,
               },
             ]}
           >
             <Text style={s.waitlistBtnText}>
-              {waitlistJoined
+              {waitlistJoined2
                 ? "You're on the list!"
-                : waitlistSubmitting
+                : waitlistSubmitting2
                 ? "Joining..."
                 : "Join the Waitlist"}
             </Text>
@@ -746,6 +814,132 @@ export default function HomeScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* CTA Popup — shown once after first avatar share */}
+      <Modal
+        visible={showCtaPopup}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCtaPopup(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={s.modalOverlay}
+        >
+          <View style={[s.modalSheet, { backgroundColor: colors.card }]}>
+            {/* Handle bar */}
+            <View style={s.modalHandle} />
+
+            {/* Close */}
+            <TouchableOpacity
+              onPress={() => setShowCtaPopup(false)}
+              style={s.modalClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={20} color={colors.textMuted} strokeWidth={2} />
+            </TouchableOpacity>
+
+            <View style={s.modalBody}>
+              <Shield size={32} color={colors.accent} strokeWidth={1.5} />
+              <Text style={[s.modalTitle, { color: colors.text }]}>
+                Loved making that? <Text style={{ color: "#16A34A" }}>There's more.</Text>
+              </Text>
+              <Text style={[s.modalSubtitle, { color: colors.textMuted }]}>
+                Prep Mi is building the full kitchen OS for students and professionals
+              </Text>
+
+              {/* Tier cards side by side */}
+              <View style={s.tierRow}>
+                {/* Student */}
+                <View style={[s.tierCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Text style={[s.tierName, { color: colors.text }]}>Student</Text>
+                  <View style={s.tierPerks}>
+                    {["Recipe portfolio", "Training tracker", "Food safety basics", "25 AI scans/day"].map((p) => (
+                      <View key={p} style={s.tierPerkRow}>
+                        <Check size={12} color={colors.accent} strokeWidth={2.5} />
+                        <Text style={[s.tierPerkText, { color: colors.textMuted }]}>{p}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={[s.tierPrice, { color: colors.textMuted }]}>Coming soon</Text>
+                </View>
+                {/* Pro */}
+                <View style={[s.tierCard, { backgroundColor: colors.surface, borderColor: "#16A34A", borderWidth: 2 }]}>
+                  <Text style={[s.tierName, { color: colors.text }]}>Pro</Text>
+                  <View style={s.tierPerks}>
+                    {["Everything in Student", "Live recipe costing", "Menu engineering", "50 AI scans/day"].map((p) => (
+                      <View key={p} style={s.tierPerkRow}>
+                        <Check size={12} color={colors.accent} strokeWidth={2.5} />
+                        <Text style={[s.tierPerkText, { color: colors.textMuted }]}>{p}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={[s.tierPrice, { color: colors.textMuted }]}>Coming soon</Text>
+                </View>
+              </View>
+
+              <Text style={[s.modalHighlight, { color: "#16A34A" }]}>
+                Avatar buyers get priority + 50% off first month
+              </Text>
+
+              <TextInput
+                style={[
+                  s.waitlistInput,
+                  {
+                    backgroundColor: colors.inputBg,
+                    color: colors.text,
+                    borderColor: colors.border,
+                    marginTop: 12,
+                  },
+                ]}
+                placeholder="your@email.com"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={ctaEmail}
+                onChangeText={setCtaEmail}
+              />
+              <TouchableOpacity
+                onPress={async () => {
+                  tap();
+                  if (!ctaEmail || !ctaEmail.includes("@")) {
+                    Alert.alert("Invalid Email", "Please enter a valid email.");
+                    return;
+                  }
+                  setCtaSubmitting(true);
+                  try {
+                    await joinWaitlist(ctaEmail);
+                    setCtaJoined(true);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    setTimeout(() => setShowCtaPopup(false), 1500);
+                  } catch (e: any) {
+                    Alert.alert("Oops", e.message || "Something went wrong.");
+                  } finally {
+                    setCtaSubmitting(false);
+                  }
+                }}
+                disabled={ctaSubmitting || ctaJoined}
+                style={[
+                  s.waitlistBtn,
+                  {
+                    backgroundColor: ctaJoined ? colors.success : colors.accent,
+                    opacity: ctaSubmitting ? 0.6 : 1,
+                    marginTop: 10,
+                  },
+                ]}
+              >
+                <Text style={s.waitlistBtnText}>
+                  {ctaJoined ? "You're on the list!" : ctaSubmitting ? "Joining..." : "Join the Waitlist"}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={[s.modalFootnote, { color: colors.textMuted }]}>
+                Not now? Find this at the bottom of the home page.
+              </Text>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -767,14 +961,11 @@ const s = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
   },
-  logoPlaceholder: {
+  logoImage: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  logoText: { color: "#FFFFFF", fontSize: 18, fontWeight: "800" },
   headerTitle: { fontSize: 20, fontWeight: "800" },
   // Clock
   clockCard: {
@@ -829,60 +1020,97 @@ const s = StyleSheet.create({
   },
   lapLabel: { fontSize: 13 },
   lapTime: { fontSize: 13, fontWeight: "600" },
-  // Bubble
+  // SLR Lens Bubble
   bubbleSection: { alignItems: "center", marginBottom: 24 },
   bubbleOuter: {
-    width: 160,
-    height: 160,
+    width: 220,
+    height: 220,
     alignItems: "center",
     justifyContent: "center",
-  },
-  shutterRing: {
-    position: "absolute",
-    width: 160,
-    height: 160,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shutterBlade: {
-    position: "absolute",
-    width: 2,
-    height: 160,
-    backgroundColor: "rgba(22,163,74,0.15)",
   },
   glowRing: {
     position: "absolute",
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     borderWidth: 2,
   },
-  greenCircle: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    backgroundColor: "#16A34A",
+  lensBody: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "#1A1A1A",
+    borderWidth: 3,
+    borderColor: "#333",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "rgba(22,163,74,0.35)",
+    shadowColor: "rgba(0,0,0,0.5)",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
-    shadowRadius: 30,
+    shadowRadius: 20,
     elevation: 10,
   },
-  bubbleLogoWrap: { alignItems: "center", justifyContent: "center" },
-  bubbleLogo: { color: "#FFFFFF", fontSize: 48, fontWeight: "800" },
-  cameraOverlay: {
+  gripRing: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gripMark: {
+    position: "absolute",
+    width: 3,
+    height: 10,
+    backgroundColor: "#555",
+    borderRadius: 1.5,
+  },
+  apertureRing: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "#0D0D0D",
+    borderWidth: 2,
+    borderColor: "#2A2A2A",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  blade: {
+    position: "absolute",
+    width: 56,
+    height: 56,
+    backgroundColor: "#222",
+    borderWidth: 0.5,
+    borderColor: "#3A3A3A",
+  },
+  lensCenterIcon: {
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
   },
-  cameraScanText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginTop: 2,
+  lensReflection: {
+    position: "absolute",
+    top: 18,
+    left: 40,
+    width: 50,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    transform: [{ rotate: "-30deg" }],
+  },
+  lockOverlay: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FAFAF8",
+    zIndex: 5,
   },
   bubbleTitle: { fontSize: 16, fontWeight: "700", marginTop: 16 },
   bubbleSubtitle: { fontSize: 12, marginTop: 4 },
@@ -905,57 +1133,85 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   stylePillText: { fontSize: 12, fontWeight: "600" },
-  // Tools
+  // Tools (vertical pills)
   sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
-  toolGrid: {
+  toolPill: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 20,
-  },
-  toolCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-  },
-  toolIconWrap: {
-    width: 44,
-    height: 44,
+    alignItems: "center",
     borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 8,
+  },
+  toolPillIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
   },
-  toolName: { fontSize: 13, fontWeight: "700" },
-  toolDesc: { fontSize: 11, marginTop: 2 },
-  // Referral
-  referralCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-  },
-  referralTitle: { fontSize: 14, fontWeight: "700" },
-  referralDesc: { fontSize: 12, marginTop: 6, lineHeight: 18 },
-  referralCodeBox: {
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 12,
-    alignItems: "center",
-  },
-  referralCode: { fontSize: 18, fontWeight: "800", letterSpacing: 2 },
-  referralBtn: {
+  toolPillText: { flex: 1, marginLeft: 12 },
+  toolPillName: { fontSize: 13, fontWeight: "700" },
+  toolPillDesc: { fontSize: 11, marginTop: 1 },
+  // Mode pills
+  modePill: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 8,
   },
-  referralBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  modePillIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modePillText: { flex: 1, marginLeft: 12, marginRight: 8 },
+  modePillName: { fontSize: 13, fontWeight: "700" },
+  modePillDesc: { fontSize: 11, marginTop: 1, lineHeight: 15 },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "ios" ? 34 : 20,
+    maxHeight: "88%",
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#D1D5DB",
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  modalClose: { position: "absolute", top: 14, right: 16, zIndex: 10 },
+  modalBody: { alignItems: "center", paddingTop: 4 },
+  modalTitle: { fontSize: 18, fontWeight: "800", textAlign: "center", marginTop: 12 },
+  modalSubtitle: { fontSize: 13, textAlign: "center", marginTop: 6, lineHeight: 18, paddingHorizontal: 10 },
+  tierRow: { flexDirection: "row", gap: 10, marginTop: 16, width: "100%" },
+  tierCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  tierName: { fontSize: 14, fontWeight: "800", marginBottom: 8 },
+  tierPerks: { gap: 5 },
+  tierPerkRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tierPerkText: { fontSize: 10, flex: 1 },
+  tierPrice: { fontSize: 11, fontWeight: "600", marginTop: 10, textAlign: "center" },
+  modalHighlight: { fontSize: 12, fontWeight: "700", marginTop: 14, textAlign: "center" },
+  modalFootnote: { fontSize: 11, marginTop: 12, textAlign: "center" },
   // Waitlist
   waitlistCard: {
     borderRadius: 14,

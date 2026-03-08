@@ -1,31 +1,66 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Switch,
   Linking,
   Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  Palette,
-  CreditCard,
   Users,
   Shield,
   FileText,
   MessageSquare,
   ChevronRight,
   Sparkles,
+  LogOut,
+  Camera,
 } from "lucide-react-native";
 import { useTheme, THEMES } from "../../src/contexts/ThemeProvider";
+import { useAuth } from "../../src/contexts/AuthProvider";
+
+const FEATURE_PREVIEW_KEY = "show_feature_preview";
 
 export default function SettingsScreen() {
   const { themeId, colors, isDark, setTheme } = useTheme();
+  const { user, profile, signOut } = useAuth();
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+  const [showFeaturePreview, setShowFeaturePreview] = useState(true);
+
+  useEffect(() => {
+    AsyncStorage.getItem(FEATURE_PREVIEW_KEY).then((val) => {
+      if (val !== null) setShowFeaturePreview(val === "true");
+    });
+  }, []);
+
+  const toggleFeaturePreview = (value: boolean) => {
+    setShowFeaturePreview(value);
+    AsyncStorage.setItem(FEATURE_PREVIEW_KEY, String(value));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSignOut = () => {
+    Alert.alert("Sign Out", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: colors.background }]}>
@@ -103,47 +138,124 @@ export default function SettingsScreen() {
             { backgroundColor: colors.card, borderColor: colors.cardBorder },
           ]}
         >
-          <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
-            <View style={s.menuLeft}>
-              <View
-                style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}
-              >
-                <Sparkles
-                  size={16}
-                  color={colors.accent}
-                  strokeWidth={2}
-                />
+          {user && profile ? (
+            <>
+              <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                    <Camera size={16} color={colors.accent} strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={[s.menuLabel, { color: colors.text }]}>
+                      {profile.displayName}
+                    </Text>
+                    <Text style={[s.menuSub, { color: colors.textMuted }]}>
+                      {profile.email}
+                    </Text>
+                  </View>
+                </View>
               </View>
-              <View>
-                <Text style={[s.menuLabel, { color: colors.text }]}>
-                  AI Credits
-                </Text>
-                <Text style={[s.menuSub, { color: colors.textMuted }]}>
-                  3 free scans per day
-                </Text>
+              <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                    <Sparkles size={16} color={colors.accent} strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={[s.menuLabel, { color: colors.text }]}>Avatar Credits</Text>
+                    <Text style={[s.menuSub, { color: colors.textMuted }]}>
+                      {profile.avatarCredits} remaining
+                    </Text>
+                  </View>
+                </View>
+                <View style={[s.badge, { backgroundColor: colors.accentBg }]}>
+                  <Text style={[s.badgeText, { color: colors.accent }]}>{profile.avatarCredits}</Text>
+                </View>
               </View>
-            </View>
-            <View style={[s.badge, { backgroundColor: colors.accentBg }]}>
-              <Text style={[s.badgeText, { color: colors.accent }]}>Free</Text>
-            </View>
-          </View>
+              {profile.referralCode && (
+                <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
+                  <View style={s.menuLeft}>
+                    <View style={[s.menuIconWrap, { backgroundColor: "#FEF3C7" }]}>
+                      <Users size={16} color="#D97706" strokeWidth={2} />
+                    </View>
+                    <View>
+                      <Text style={[s.menuLabel, { color: colors.text }]}>Referral Code</Text>
+                      <Text style={[s.menuSub, { color: colors.textMuted }]}>{profile.referralCode}</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+                </View>
+              )}
+              <TouchableOpacity style={s.menuRow} onPress={handleSignOut}>
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: colors.destructiveBg }]}>
+                    <LogOut size={16} color={colors.destructive} strokeWidth={2} />
+                  </View>
+                  <Text style={[s.menuLabel, { color: colors.destructive }]}>Sign Out</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                    <Sparkles size={16} color={colors.accent} strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={[s.menuLabel, { color: colors.text }]}>AI Credits</Text>
+                    <Text style={[s.menuSub, { color: colors.textMuted }]}>3 free scans per day</Text>
+                  </View>
+                </View>
+                <View style={[s.badge, { backgroundColor: colors.accentBg }]}>
+                  <Text style={[s.badgeText, { color: colors.accent }]}>Free</Text>
+                </View>
+              </View>
+              <View style={s.menuRow}>
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                    <Camera size={16} color={colors.accent} strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={[s.menuLabel, { color: colors.text }]}>Sign in to unlock Avatar Studio</Text>
+                    <Text style={[s.menuSub, { color: colors.textMuted }]}>3 free avatars waiting</Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* During Avatar Generation */}
+        <Text style={[s.sectionTitle, { color: colors.textMuted }]}>
+          DURING AVATAR GENERATION
+        </Text>
+        <View
+          style={[
+            s.menuCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
+          ]}
+        >
           <View style={s.menuRow}>
-            <View style={s.menuLeft}>
-              <View
-                style={[s.menuIconWrap, { backgroundColor: "#FEF3C7" }]}
-              >
-                <Users size={16} color="#D97706" strokeWidth={2} />
+            <View style={[s.menuLeft, { flex: 1 }]}>
+              <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                <Sparkles size={16} color={colors.accent} strokeWidth={2} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[s.menuLabel, { color: colors.text }]}>
-                  Referral Code
+                  Show feature preview
                 </Text>
                 <Text style={[s.menuSub, { color: colors.textMuted }]}>
-                  CHEF-2026 · 0 referrals
+                  See what's coming to Prep Mi while your avatar generates
                 </Text>
               </View>
             </View>
-            <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+            <Switch
+              value={showFeaturePreview}
+              onValueChange={toggleFeaturePreview}
+              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor="#FFFFFF"
+            />
           </View>
         </View>
 

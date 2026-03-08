@@ -9,10 +9,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
-  ArrowUpDown,
+  Calculator,
   ArrowLeftRight,
   Clock,
-  DollarSign,
   Percent,
 } from "lucide-react-native";
 import { useTheme } from "../../src/contexts/ThemeProvider";
@@ -28,10 +27,10 @@ interface ToolItem {
 
 const TOOLS: ToolItem[] = [
   {
-    title: "Recipe Scaler",
-    description: "Scale any recipe",
-    route: "/tools/recipe-scaler",
-    Icon: ArrowUpDown,
+    title: "ChefCalc Pro",
+    description: "Smart pricing with GST",
+    route: "/tools/calculator",
+    Icon: Calculator,
     iconColor: "#16A34A",
     iconBg: "#DCFCE7",
   },
@@ -50,14 +49,6 @@ const TOOLS: ToolItem[] = [
     Icon: Clock,
     iconColor: "#D97706",
     iconBg: "#FEF3C7",
-  },
-  {
-    title: "Cost / Portion",
-    description: "Know your margins",
-    route: "/tools/cost-portion",
-    Icon: DollarSign,
-    iconColor: "#DB2777",
-    iconBg: "#FCE7F3",
   },
   {
     title: "Yield Calculator",

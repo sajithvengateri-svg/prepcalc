@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "au.prepmi.prepcalc",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "PrepCalc needs camera access for the Anime Chef Studio feature."
@@ -27,7 +28,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -37,13 +42,15 @@
       "supabaseUrl": "https://twxysmsntweutblkfzdi.supabase.co",
       "supabaseAnonKey": "sb_publishable_SYCJwaryXxxtirbkUynfTw_8MmWGdtJ",
       "eas": {
-        "projectId": "9cb17d6a-6f3a-4b0a-8456-95eb991c9823"
-      }
+        "projectId": "4c2ab2b7-d043-4531-a173-295c0558d0a1"
+      },
+      "router": {}
     },
-    "owner": "ubilo",
+    "owner": "prepcalc",
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-apple-authentication",
       [
         "expo-camera",
         {

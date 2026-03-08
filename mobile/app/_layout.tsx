@@ -1,13 +1,15 @@
 import { Stack } from "expo-router";
 import { ThemeProvider } from "../src/contexts/ThemeProvider";
+import { AuthProvider } from "../src/contexts/AuthProvider";
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
+      <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
-          name="tools/recipe-scaler"
+          name="tools/calculator"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
@@ -16,10 +18,6 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="tools/multi-timer"
-          options={{ headerShown: false, animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tools/cost-portion"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
@@ -47,6 +45,7 @@ export default function RootLayout() {
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
       </Stack>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
