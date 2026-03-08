@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "20dca482-4414-4084-a559-c2bfc3b8a8e0"
+      }
+    },
+    "android": {
+      "package": "au.prepmi.prepcalc"
+    }
+  }
+}
