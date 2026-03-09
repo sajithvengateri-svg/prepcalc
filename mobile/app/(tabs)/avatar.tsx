@@ -82,7 +82,7 @@ const FUNC_NAME = "generate-anime-avatar";
 export default function AvatarScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { user, profile, useAvatarCredit } = useAuth();
+  const { user, profile, useAvatarCredit, isLoading: authLoading } = useAuth();
   const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>("Anime");
   const [selectedMode, setSelectedMode] = useState<AvatarMode>("standard");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -297,8 +297,8 @@ export default function AvatarScreen() {
   // Auth success callback — immediately launch camera
   const handleAuthSuccess = useCallback(() => {
     setShowAuthSheet(false);
-    // Small delay to let sheet dismiss, then launch camera
-    setTimeout(() => launchCamera(), 300);
+    // Small delay to let sheet dismiss and auth state to propagate, then launch camera
+    setTimeout(() => launchCamera(), 500);
   }, []);
 
   const handleCapture = async () => {
@@ -308,9 +308,14 @@ export default function AvatarScreen() {
       Animated.timing(bubbleScale, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
 
-    // Gate behind auth
-    if (!user) {
+    // Gate behind auth — but don't gate if still loading session
+    if (!user && !authLoading) {
       setShowAuthSheet(true);
+      return;
+    }
+    if (authLoading) {
+      // Session still loading, wait a moment and retry
+      setTimeout(() => handleCapture(), 500);
       return;
     }
 
@@ -624,14 +629,14 @@ export default function AvatarScreen() {
             </TouchableOpacity>
 
             {/* Lock overlay when not signed in */}
-            {!user && (
+            {!user && !authLoading && (
               <View style={s.lockOverlay}>
                 <Lock size={14} color="#FFFFFF" strokeWidth={2.5} />
               </View>
             )}
 
             <Text style={[s.bubbleLabel, { color: colors.text }]}>
-              {user ? "Tap to capture" : "Sign in to create"}
+              {authLoading ? "Loading..." : user ? "Tap to capture" : "Sign in to create"}
             </Text>
             <Text style={[s.bubbleSub, { color: colors.textMuted }]}>
               {user

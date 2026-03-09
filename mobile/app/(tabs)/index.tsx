@@ -12,6 +12,7 @@ import {
   Alert,
   Modal,
   KeyboardAvoidingView,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -38,16 +39,8 @@ import { joinWaitlist } from "../../src/lib/waitlist";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function getGreeting(userName?: string): string {
-  const hour = new Date().getHours();
-  let timeGreeting: string;
-
-  if (hour >= 5 && hour < 12) timeGreeting = "Good morning";
-  else if (hour >= 12 && hour < 17) timeGreeting = "Good afternoon";
-  else if (hour >= 17 && hour < 24) timeGreeting = "Good evening";
-  else timeGreeting = "Late night";
-
   if (userName) {
-    return `${timeGreeting}, Chef ${userName}`;
+    return `Yes, Chef. ${userName}`;
   }
   return "Yes, Chef";
 }
@@ -204,7 +197,11 @@ export default function HomeScreen() {
             {greeting}
           </Text>
           <View style={s.headerLogo}>
-            <Camera size={18} color="#FFFFFF" strokeWidth={1.75} />
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={s.headerLogoImage}
+              resizeMode="cover"
+            />
           </View>
         </View>
 
@@ -665,12 +662,15 @@ const s = StyleSheet.create({
   },
   greeting: { fontSize: 20, fontWeight: "800" },
   headerLogo: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#16A34A",
-    alignItems: "center",
-    justifyContent: "center",
+    width: 68,
+    height: 68,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  headerLogoImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 16,
   },
   // SLR Lens Bubble
   bubbleSection: { alignItems: "center", marginBottom: 24, marginTop: 8 },
