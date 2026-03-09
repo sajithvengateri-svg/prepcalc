@@ -59,10 +59,7 @@ const MiniRing = ({
 export default function DashboardScreen() {
   return (
     <View style={ms.container}>
-      <View style={ms.header}>
-        <Text style={ms.title}>Prep Mi Pro</Text>
-        <Text style={ms.subtitle}>Kitchen Dashboard</Text>
-      </View>
+      <View style={ms.header} />
 
       <View style={ms.ringRow}>
         <MiniRing percent={28} color="#16A34A" label="Food Cost" value="28%" />

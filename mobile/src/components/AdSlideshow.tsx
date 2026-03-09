@@ -10,14 +10,14 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
-import { AD_SCREEN_COMPONENTS } from "./ad-screens";
 import {
-  LoadingAd,
-  fetchActiveAds,
-  pickAdsForSlideshow,
-  trackAdEvent,
-  FALLBACK_ADS,
-} from "../services/adService";
+  AD_SCREEN_COMPONENTS,
+  AD_SCREEN_TITLES,
+  AD_SCREEN_SUBTITLES,
+  DARK_SLIDES,
+  ALL_PRESETS,
+  type AdScreenPreset,
+} from "./ad-screens";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const AUTO_SCROLL_INTERVAL = 4000;
@@ -27,23 +27,11 @@ interface AdSlideshowProps {
 }
 
 export default function AdSlideshow({ active = true }: AdSlideshowProps) {
-  const [ads, setAds] = useState<LoadingAd[]>(FALLBACK_ADS);
+  const slides = ALL_PRESETS;
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  // Fetch ads on mount
-  useEffect(() => {
-    let mounted = true;
-    fetchActiveAds().then((fetched) => {
-      if (mounted) {
-        const picked = pickAdsForSlideshow(fetched, 6);
-        setAds(picked);
-      }
-    });
-    return () => { mounted = false; };
-  }, []);
 
   // Fade in
   useEffect(() => {
@@ -57,11 +45,11 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
 
   // Auto-scroll every 4s
   useEffect(() => {
-    if (!active || ads.length <= 1) return;
+    if (!active || slides.length <= 1) return;
 
     autoScrollTimer.current = setInterval(() => {
       setCurrentIndex((prev) => {
-        const next = (prev + 1) % ads.length;
+        const next = (prev + 1) % slides.length;
         scrollRef.current?.scrollTo({
           x: next * SCREEN_WIDTH,
           animated: true,
@@ -73,33 +61,25 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
     return () => {
       if (autoScrollTimer.current) clearInterval(autoScrollTimer.current);
     };
-  }, [active, ads.length]);
-
-  // Track impression
-  useEffect(() => {
-    if (ads[currentIndex]) {
-      trackAdEvent(ads[currentIndex].id, "impression");
-    }
-  }, [currentIndex, ads]);
+  }, [active, slides.length]);
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetX = e.nativeEvent.contentOffset.x;
       const index = Math.round(offsetX / SCREEN_WIDTH);
-      if (index !== currentIndex && index >= 0 && index < ads.length) {
+      if (index !== currentIndex && index >= 0 && index < slides.length) {
         setCurrentIndex(index);
       }
     },
-    [currentIndex, ads.length]
+    [currentIndex, slides.length]
   );
 
-  const handleTap = useCallback((ad: LoadingAd) => {
-    trackAdEvent(ad.id, "tap");
-  }, []);
+  if (slides.length === 0) return null;
 
-  if (ads.length === 0) return null;
-
-  const ad = ads[currentIndex];
+  const currentSlide = slides[currentIndex];
+  const isDark = DARK_SLIDES.includes(currentSlide);
+  const title = AD_SCREEN_TITLES[currentSlide];
+  const subtitle = AD_SCREEN_SUBTITLES[currentSlide];
 
   return (
     <Animated.View style={[st.container, { opacity: fadeAnim }]}>
@@ -112,37 +92,52 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {ads.map((ad) => {
-          const ScreenComponent = AD_SCREEN_COMPONENTS[ad.screen_preset] || null;
+        {slides.map((preset) => {
+          const ScreenComponent = AD_SCREEN_COMPONENTS[preset];
+          const slideIsDark = DARK_SLIDES.includes(preset);
+          const slideTitle = AD_SCREEN_TITLES[preset];
+          const slideSub = AD_SCREEN_SUBTITLES[preset];
 
           return (
             <TouchableOpacity
-              key={ad.id}
+              key={preset}
               activeOpacity={1}
-              onPress={() => handleTap(ad)}
               style={st.slide}
             >
-              <View style={st.screenContent}>
-                {ScreenComponent ? <ScreenComponent /> : null}
+              <View style={[st.screenContent, { backgroundColor: slideIsDark ? "#0F0F0F" : "#FAFAF8" }]}>
+                {/* Header overlay for feature slides (not intro/cta) */}
+                {slideTitle ? (
+                  <View style={st.slideHeader}>
+                    <Text style={[st.slideTitle, { color: slideIsDark ? "#FFFFFF" : "#1A1A1A" }]}>
+                      {slideTitle}
+                    </Text>
+                    {slideSub ? (
+                      <Text style={[st.slideSub, { color: slideIsDark ? "#9CA3AF" : "#6B7280" }]}>
+                        {slideSub}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+                <View style={slideTitle ? st.screenBody : st.screenBodyFull}>
+                  <ScreenComponent />
+                </View>
               </View>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      {/* Bottom overlay — title + dots */}
+      {/* Bottom dots */}
       <View style={st.bottomOverlay}>
-        <Text style={st.adTitle}>{ad?.title}</Text>
-        <Text style={st.adSub} numberOfLines={1}>{ad?.subtitle}</Text>
-
-        {/* Dot indicators */}
         <View style={st.dots}>
-          {ads.map((_, i) => (
+          {slides.map((_, i) => (
             <View
               key={i}
               style={[
                 st.dot,
                 i === currentIndex ? st.dotActive : st.dotInactive,
+                isDark && i === currentIndex && { backgroundColor: "#16A34A" },
+                isDark && i !== currentIndex && { backgroundColor: "rgba(255,255,255,0.3)" },
               ]}
             />
           ))}
@@ -162,36 +157,40 @@ const st = StyleSheet.create({
   },
   screenContent: {
     flex: 1,
-    backgroundColor: "#FAFAF8",
-    padding: 16,
   },
-  // Bottom overlay — subtle
+  slideHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  slideTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  slideSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  screenBody: {
+    flex: 1,
+    paddingHorizontal: 4,
+  },
+  screenBodyFull: {
+    flex: 1,
+  },
   bottomOverlay: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 20,
     paddingBottom: 10,
     paddingTop: 10,
     alignItems: "center",
-  },
-  adTitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#16A34A",
-    opacity: 0.7,
-  },
-  adSub: {
-    fontSize: 11,
-    color: "rgba(0,0,0,0.35)",
-    marginTop: 1,
   },
   dots: {
     flexDirection: "row",
     justifyContent: "center",
     gap: 5,
-    marginTop: 6,
   },
   dot: {
     width: 5,

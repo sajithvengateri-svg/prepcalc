@@ -25,7 +25,7 @@ interface CachedAds {
 
 // --- Constants ---
 
-const CACHE_KEY = "prepcalc-loading-ads";
+const CACHE_KEY = "prepcam-loading-ads";
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 // Using supabase.functions.invoke() handles auth headers automatically
 

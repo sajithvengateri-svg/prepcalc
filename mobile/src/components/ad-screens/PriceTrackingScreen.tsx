@@ -13,10 +13,7 @@ const priceItems = [
 export default function PriceTrackingScreen() {
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.title}>Price Tracking</Text>
-        <Text style={s.subtitle}>Supplier price movements</Text>
-      </View>
+      <View style={s.header} />
 
       <View style={s.alertBanner}>
         <TrendingUp size={12} color="#DC2626" />

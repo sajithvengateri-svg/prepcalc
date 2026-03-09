@@ -309,7 +309,7 @@ export default function SettingsScreen() {
             style={s.menuRow}
             onPress={() => {
               tap();
-              Linking.openURL("mailto:hello@prepmi.com.au?subject=PrepCalc Feedback");
+              Linking.openURL("mailto:hello@prepmi.com.au?subject=PrepCam Feedback");
             }}
           >
             <View style={s.menuLeft}>
@@ -327,7 +327,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={[s.footer, { color: colors.textMuted }]}>
-          PrepCalc by Prep Mi · v1.0.0
+          PrepCam by Prep Mi · v1.0.0
         </Text>
 
         <View style={{ height: 40 }} />

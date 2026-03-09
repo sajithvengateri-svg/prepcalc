@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import * as Clipboard from "expo-clipboard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Camera,
@@ -31,6 +32,7 @@ import {
   Columns2,
   CreditCard,
   Users,
+  Copy,
 } from "lucide-react-native";
 import { useTheme } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
@@ -396,16 +398,30 @@ export default function AvatarScreen() {
     }
   };
 
-  const SHARE_CAPTION = `Hey look at my Chef Anime! Made with PrepCalc Anime Studio 🔥👨‍🍳
+  const getCaption = (mode: AvatarMode, title?: string): string => {
+    switch (mode) {
+      case "standard":
+        if (selectedMode === "standard") {
+          return "How I feel at 7PM on a Saturday vs how my mum thinks I look. Made with PrepCam #YesChef #KitchenLife";
+        }
+        return "Check out my anime chef look. Made with PrepCam #KitchenHero #AnimeChef";
+      case "kitchen_pass":
+        return `Officially a ${title || "Verified Chef"}. Made with PrepCam #VerifiedChef #KitchenPass`;
+      case "manga_menu":
+        return "The brigade, anime edition. Made with PrepCam #KitchenHero #TheBrigade";
+      default:
+        return "Check out my anime chef look. Made with PrepCam #KitchenHero #AnimeChef";
+    }
+  };
 
-#PrepCalc #AnimeChef #ChefLife #KitchenVibes #AnimeStudio
+  const currentCaption = getCaption(selectedMode);
 
-Get yours free:
-📱 PrepCalc App — prepmi.com.au/prepcalc
-
-Follow us:
-📸 instagram.com/prepmi.au
-📘 facebook.com/prepmi.au`;
+  const handleCopyCaption = async () => {
+    tap();
+    await Clipboard.setStringAsync(currentCaption);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert("Copied", "Caption copied to clipboard");
+  };
 
   const handleShare = async () => {
     tap();
@@ -413,7 +429,7 @@ Follow us:
       if (!generatedImage || generatedImage === "placeholder") {
         await useAvatarCredit();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert("Share", SHARE_CAPTION);
+        Alert.alert("Share", currentCaption);
         return;
       }
       try {
@@ -425,7 +441,7 @@ Follow us:
           await useAvatarCredit();
           await Sharing.shareAsync(fileUri, {
             mimeType: "image/png",
-            dialogTitle: SHARE_CAPTION,
+            dialogTitle: currentCaption,
           });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
@@ -701,6 +717,20 @@ Follow us:
               <Animated.View style={[s.sparkleOverlay, { transform: [{ scale: sparkleScale }] }]}>
                 <Sparkles size={32} color="#FFFFFF" strokeWidth={1.5} />
               </Animated.View>
+            </View>
+
+            {/* Caption */}
+            <View style={s.captionSection}>
+              <Text style={[s.captionLabel, { color: colors.textMuted }]}>Caption</Text>
+              <View style={[s.captionBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[s.captionText, { color: colors.text }]} numberOfLines={3}>
+                  {currentCaption}
+                </Text>
+                <TouchableOpacity onPress={handleCopyCaption} style={s.copyBtn}>
+                  <Copy size={16} color={colors.accent} strokeWidth={2} />
+                  <Text style={[s.copyBtnText, { color: colors.accent }]}>Copy</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Share credits badge */}
@@ -1335,6 +1365,42 @@ const s = StyleSheet.create({
     marginTop: 10,
   },
   saveBtnText: { fontSize: 14, fontWeight: "600" },
+  // Caption
+  captionSection: {
+    marginTop: 12,
+    width: "100%",
+  },
+  captionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  captionBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    gap: 10,
+  },
+  captionText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  copyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: "rgba(22,163,74,0.1)",
+  },
+  copyBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
   // Style
   styleSection: { marginVertical: 16 },
   styleLabel: { fontSize: 15, fontWeight: "700", marginBottom: 10 },

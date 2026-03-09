@@ -13,10 +13,7 @@ const ingredients = [
 export default function RecipeCostingScreen() {
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.title}>Recipe Costing</Text>
-        <Text style={s.subtitle}>Wagyu Scotch Fillet 300g</Text>
-      </View>
+      <View style={s.header} />
 
       <View style={s.ingredientList}>
         {ingredients.map((ing, i) => (

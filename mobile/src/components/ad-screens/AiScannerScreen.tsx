@@ -5,10 +5,7 @@ import { Scan, Sparkles, Camera, Zap } from "lucide-react-native";
 export default function AiScannerScreen() {
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.title}>AI Invoice Scanner</Text>
-        <Text style={s.subtitle}>Snap → Extract → Done</Text>
-      </View>
+      <View style={s.header} />
 
       {/* Scanner preview mock */}
       <View style={s.scannerBox}>

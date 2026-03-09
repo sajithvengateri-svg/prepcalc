@@ -33,10 +33,7 @@ const statusColor: Record<string, string> = {
 export default function BccAuditScreen() {
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.title}>BCC Audit Trail</Text>
-        <Text style={s.subtitle}>Daily compliance checklist</Text>
-      </View>
+      <View style={s.header} />
 
       {/* Score ring */}
       <View style={s.scoreRow}>

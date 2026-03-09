@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PrepCalc",
-    "slug": "prepcalc",
+    "name": "PrepCam",
+    "slug": "prepcam",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "prepcalc",
@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "PrepCalc needs camera access for the Anime Chef Studio feature."
+        "NSCameraUsageDescription": "PrepCam needs camera access for the Anime Chef Studio feature."
       }
     },
     "android": {
@@ -54,7 +54,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "PrepCalc needs camera access for the Anime Chef Studio feature."
+          "cameraPermission": "PrepCam needs camera access for the Anime Chef Studio feature."
         }
       ]
     ]

@@ -18,10 +18,7 @@ const CategoryBadge = ({ cat, color }: { cat: string; color: string }) => (
 export default function MenuEngineeringScreen() {
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <Text style={s.title}>Menu Engineering</Text>
-        <Text style={s.subtitle}>BCG Matrix Analysis</Text>
-      </View>
+      <View style={s.header} />
 
       {/* 2x2 Matrix */}
       <View style={s.matrix}>
