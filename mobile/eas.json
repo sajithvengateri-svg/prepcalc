@@ -14,8 +14,8 @@
       "distribution": "internal",
       "credentialsSource": "remote",
       "node": "22.12.0",
-      "ios": {
-        "simulator": true
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {
