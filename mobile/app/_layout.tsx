@@ -44,6 +44,10 @@ export default function RootLayout() {
           name="reference/allergens"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
+        <Stack.Screen
+          name="reference/butchery-detail"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
       </Stack>
       </AuthProvider>
     </ThemeProvider>

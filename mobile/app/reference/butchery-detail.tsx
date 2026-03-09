@@ -135,12 +135,10 @@ export default function ButcheryDetailScreen() {
               resizeMode="contain"
             />
             {/* Tap zones */}
-            {animal.zones.map((zone) => {
-              const isActive = selectedZone?.id === zone.id;
-              return (
+            {animal.zones.map((zone) => (
                 <TouchableOpacity
                   key={zone.id}
-                  activeOpacity={0.6}
+                  activeOpacity={0.3}
                   onPress={() => handleZoneTap(zone)}
                   style={[
                     s.tapZone,
@@ -150,11 +148,9 @@ export default function ButcheryDetailScreen() {
                       width: zone.width as any,
                       height: zone.height as any,
                     },
-                    isActive && s.tapZoneActive,
                   ]}
                 />
-              );
-            })}
+            ))}
           </TouchableOpacity>
         </View>
 
@@ -299,13 +295,11 @@ const s = StyleSheet.create({
   },
   tapZone: {
     position: "absolute",
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "transparent",
+    backgroundColor: "transparent",
+    borderWidth: 0,
   },
   tapZoneActive: {
-    backgroundColor: "rgba(22,163,74,0.2)",
-    borderColor: "rgba(22,163,74,0.5)",
+    backgroundColor: "rgba(22,163,74,0.15)",
   },
 
   hint: {

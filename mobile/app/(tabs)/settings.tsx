@@ -9,6 +9,7 @@ import {
   Linking,
   Platform,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -23,9 +24,12 @@ import {
   Sparkles,
   LogOut,
   Camera,
+  Volume2,
+  Check,
 } from "lucide-react-native";
 import { useTheme, THEMES } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
+import { useTimerVoice, VOICE_OPTIONS, type VoiceStyle } from "../../src/hooks/useTimerVoice";
 
 const FEATURE_PREVIEW_KEY = "show_feature_preview";
 
@@ -34,11 +38,16 @@ export default function SettingsScreen() {
   const { user, profile, signOut } = useAuth();
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+  const { voiceStyle, updateVoice, preview } = useTimerVoice();
+  const [chefAvatar, setChefAvatar] = useState<string | null>(null);
   const [showFeaturePreview, setShowFeaturePreview] = useState(true);
 
   useEffect(() => {
     AsyncStorage.getItem(FEATURE_PREVIEW_KEY).then((val) => {
       if (val !== null) setShowFeaturePreview(val === "true");
+    });
+    AsyncStorage.getItem("chef_avatar_url").then((url) => {
+      if (url) setChefAvatar(url);
     });
   }, []);
 
@@ -142,9 +151,16 @@ export default function SettingsScreen() {
             <>
               <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
                 <View style={s.menuLeft}>
-                  <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
-                    <Camera size={16} color={colors.accent} strokeWidth={2} />
-                  </View>
+                  {chefAvatar ? (
+                    <Image
+                      source={{ uri: chefAvatar }}
+                      style={s.profileAvatar}
+                    />
+                  ) : (
+                    <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                      <Camera size={16} color={colors.accent} strokeWidth={2} />
+                    </View>
+                  )}
                   <View>
                     <Text style={[s.menuLabel, { color: colors.text }]}>
                       {profile.displayName}
@@ -257,6 +273,61 @@ export default function SettingsScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+        </View>
+
+        {/* Timer Voice */}
+        <Text style={[s.sectionTitle, { color: colors.textMuted }]}>
+          TIMER VOICE
+        </Text>
+        <View
+          style={[
+            s.menuCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
+          ]}
+        >
+          {VOICE_OPTIONS.map((opt, idx) => {
+            const isActive = voiceStyle === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => {
+                  tap();
+                  updateVoice(opt.id);
+                  preview(opt.id);
+                }}
+                style={[
+                  s.menuRow,
+                  {
+                    borderBottomColor:
+                      idx < VOICE_OPTIONS.length - 1 ? colors.border : "transparent",
+                  },
+                ]}
+              >
+                <View style={s.menuLeft}>
+                  <View
+                    style={[
+                      s.menuIconWrap,
+                      {
+                        backgroundColor: isActive ? colors.accentBg : colors.surface,
+                      },
+                    ]}
+                  >
+                    <Volume2
+                      size={16}
+                      color={isActive ? colors.accent : colors.textMuted}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <Text style={[s.menuLabel, { color: colors.text }]}>
+                    {opt.label}
+                  </Text>
+                </View>
+                {isActive && (
+                  <Check size={18} color={colors.accent} strokeWidth={2.5} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* About */}
@@ -395,6 +466,11 @@ const s = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   menuLabel: { fontSize: 14, fontWeight: "500" },
   menuSub: { fontSize: 12, marginTop: 1 },

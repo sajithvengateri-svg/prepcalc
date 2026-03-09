@@ -794,6 +794,29 @@ export default function AvatarScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Set as Chef Avatar */}
+            {generatedImage !== "placeholder" && (
+              <TouchableOpacity
+                onPress={async () => {
+                  tap();
+                  if (generatedImage) {
+                    await AsyncStorage.setItem("chef_avatar_url", generatedImage);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    Alert.alert("Chef Avatar Set!", "Your avatar will appear on timers and your profile.");
+                  }
+                }}
+                style={[
+                  s.saveBtn,
+                  { backgroundColor: "#DCFCE7", borderColor: "#16A34A", marginTop: 8 },
+                ]}
+              >
+                <Camera size={18} color="#16A34A" strokeWidth={2} />
+                <Text style={[s.saveBtnText, { color: "#16A34A" }]}>
+                  Set as Chef Avatar
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {/* Try another style */}
             <TouchableOpacity
               onPress={() => {

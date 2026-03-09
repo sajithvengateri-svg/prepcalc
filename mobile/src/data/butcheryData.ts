@@ -391,31 +391,31 @@ export const ANIMAL_CHARTS: AnimalChart[] = [
   {
     id: "beef",
     name: "Beef",
-    image: require("../../../assets/images/butchery/beef-chart.png"),
+    image: require("../../assets/images/butchery/beef-chart.png"),
     zones: BEEF_ZONES,
   },
   {
     id: "lamb",
     name: "Lamb",
-    image: require("../../../assets/images/butchery/lamb-chart.png"),
+    image: require("../../assets/images/butchery/lamb-chart.png"),
     zones: LAMB_ZONES,
   },
   {
     id: "pork",
     name: "Pork",
-    image: require("../../../assets/images/butchery/pork-chart.png"),
+    image: require("../../assets/images/butchery/pork-chart.png"),
     zones: PORK_ZONES,
   },
   {
     id: "chicken",
     name: "Chicken",
-    image: require("../../../assets/images/butchery/chicken-chart.png"),
+    image: require("../../assets/images/butchery/chicken-chart.png"),
     zones: CHICKEN_ZONES,
   },
   {
     id: "fish",
-    name: "Fish (Salmon)",
-    image: require("../../../assets/images/butchery/fish-chart.png"),
+    name: "Fish (Coral Trout)",
+    image: require("../../assets/images/butchery/fish-chart.png"),
     zones: FISH_ZONES,
   },
 ];

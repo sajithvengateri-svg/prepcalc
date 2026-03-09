@@ -32,9 +32,12 @@ import {
   Lock,
   X,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
 import { joinWaitlist } from "../../src/lib/waitlist";
+
+const CHEF_AVATAR_KEY = "chef_avatar_url";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -49,6 +52,14 @@ export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { user, profile } = useAuth();
   const router = useRouter();
+
+  // Chef avatar
+  const [chefAvatar, setChefAvatar] = useState<string | null>(null);
+  useEffect(() => {
+    AsyncStorage.getItem(CHEF_AVATAR_KEY).then((url) => {
+      if (url) setChefAvatar(url);
+    });
+  }, []);
 
   // Animations
   const glowAnim = useRef(new Animated.Value(1)).current;
@@ -193,9 +204,17 @@ export default function HomeScreen() {
       >
         {/* Header — greeting left, logo right */}
         <View style={s.header}>
-          <Text style={[s.greeting, { color: colors.text }]}>
-            {greeting}
-          </Text>
+          <View style={s.headerLeft}>
+            {chefAvatar && (
+              <Image
+                source={{ uri: chefAvatar }}
+                style={s.headerAvatar}
+              />
+            )}
+            <Text style={[s.greeting, { color: colors.text }]}>
+              {greeting}
+            </Text>
+          </View>
           <View style={s.headerLogo}>
             <Image
               source={require("../../assets/images/logo.png")}
@@ -660,7 +679,18 @@ const s = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
   },
-  greeting: { fontSize: 20, fontWeight: "800" },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  greeting: { fontSize: 20, fontWeight: "800", flexShrink: 1 },
   headerLogo: {
     width: 68,
     height: 68,

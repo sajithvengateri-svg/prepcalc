@@ -10,6 +10,8 @@ import {
   StyleSheet,
   Alert,
   Animated,
+  Modal,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -19,10 +21,16 @@ import {
   Pause,
   RotateCcw,
   X,
+  Volume2,
 } from "lucide-react-native";
 import Svg, { Circle } from "react-native-svg";
 import * as Haptics from "expo-haptics";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../src/contexts/ThemeProvider";
+import { useTimerVoice } from "../../src/hooks/useTimerVoice";
+
+const CHEF_AVATAR_KEY = "chef_avatar_url";
 
 // ─── Constants ───
 const RING_SIZE = 80;
@@ -168,12 +176,76 @@ function WheelColumn({
 export default function MultiTimerScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { speak } = useTimerVoice();
 
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const intervalsRef = useRef<Record<string, ReturnType<typeof setInterval>>>(
     {}
   );
+
+  // Completion modal state
+  const [doneModal, setDoneModal] = useState<{ name: string } | null>(null);
+  const [chefAvatar, setChefAvatar] = useState<string | null>(null);
+  const modalBounce = useRef(new Animated.Value(0)).current;
+  const modalOpacity = useRef(new Animated.Value(0)).current;
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load chef avatar
+  useEffect(() => {
+    AsyncStorage.getItem(CHEF_AVATAR_KEY).then((url) => {
+      if (url) setChefAvatar(url);
+    });
+  }, []);
+
+  // Request notification permissions on mount
+  useEffect(() => {
+    Notifications.requestPermissionsAsync();
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }, []);
+
+  const showDoneModal = (timerName: string) => {
+    setDoneModal({ name: timerName });
+    modalOpacity.setValue(0);
+    modalBounce.setValue(0);
+    Animated.parallel([
+      Animated.timing(modalOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(modalBounce, {
+        toValue: 1,
+        friction: 4,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    dismissTimer.current = setTimeout(() => {
+      dismissDoneModal();
+    }, 4000);
+  };
+
+  const dismissDoneModal = () => {
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    Animated.timing(modalOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setDoneModal(null));
+  };
+
+  const notifIdsRef = useRef<Record<string, string>>({});
 
   // Pulse animation for < 30s warning
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -267,6 +339,10 @@ export default function MultiTimerScreen() {
       clearInterval(intervalsRef.current[id]);
       delete intervalsRef.current[id];
     }
+    if (notifIdsRef.current[id]) {
+      Notifications.cancelScheduledNotificationAsync(notifIdsRef.current[id]).catch(() => {});
+      delete notifIdsRef.current[id];
+    }
     setTimers((prev) => prev.filter((t) => t.id !== id));
     if (expandedId === id) setExpandedId(null);
   };
@@ -283,6 +359,9 @@ export default function MultiTimerScreen() {
 
   const startTimer = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    let timerName = "";
+    let timerSeconds = 0;
+
     setTimers((prev) =>
       prev.map((t) => {
         if (t.id !== id) return t;
@@ -293,6 +372,8 @@ export default function MultiTimerScreen() {
           remaining = total;
         }
         if (remaining <= 0) return t;
+        timerName = t.name;
+        timerSeconds = remaining;
         return {
           ...t,
           totalSeconds: total,
@@ -301,6 +382,21 @@ export default function MultiTimerScreen() {
         };
       })
     );
+
+    // Schedule background notification
+    if (timerSeconds > 0) {
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${timerName} — Done!`,
+          body: "Your timer has finished, Chef!",
+          sound: true,
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: timerSeconds },
+      }).then((notifId) => {
+        // Store notification ID for cancellation
+        notifIdsRef.current[id] = notifId;
+      }).catch(() => {});
+    }
 
     if (intervalsRef.current[id]) clearInterval(intervalsRef.current[id]);
     intervalsRef.current[id] = setInterval(() => {
@@ -312,6 +408,14 @@ export default function MultiTimerScreen() {
             clearInterval(intervalsRef.current[id]);
             delete intervalsRef.current[id];
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            // Cancel the scheduled notification (we're in foreground)
+            if (notifIdsRef.current[id]) {
+              Notifications.cancelScheduledNotificationAsync(notifIdsRef.current[id]).catch(() => {});
+              delete notifIdsRef.current[id];
+            }
+            // Voice alert + completion modal
+            speak(t.name);
+            showDoneModal(t.name);
             return { ...t, remainingSeconds: 0, status: "done" };
           }
           return { ...t, remainingSeconds: next };
@@ -326,6 +430,10 @@ export default function MultiTimerScreen() {
       clearInterval(intervalsRef.current[id]);
       delete intervalsRef.current[id];
     }
+    if (notifIdsRef.current[id]) {
+      Notifications.cancelScheduledNotificationAsync(notifIdsRef.current[id]).catch(() => {});
+      delete notifIdsRef.current[id];
+    }
     setTimers((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: "paused" } : t))
     );
@@ -336,6 +444,10 @@ export default function MultiTimerScreen() {
     if (intervalsRef.current[id]) {
       clearInterval(intervalsRef.current[id]);
       delete intervalsRef.current[id];
+    }
+    if (notifIdsRef.current[id]) {
+      Notifications.cancelScheduledNotificationAsync(notifIdsRef.current[id]).catch(() => {});
+      delete notifIdsRef.current[id];
     }
     setTimers((prev) =>
       prev.map((t) =>
@@ -690,6 +802,59 @@ export default function MultiTimerScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Timer Done Modal */}
+      <Modal
+        visible={!!doneModal}
+        transparent
+        animationType="none"
+        onRequestClose={dismissDoneModal}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={dismissDoneModal}
+          style={st.modalOverlay}
+        >
+          <Animated.View
+            style={[
+              st.modalOverlay,
+              { opacity: modalOpacity, backgroundColor: "rgba(0,0,0,0.5)" },
+            ]}
+          />
+          <Animated.View
+            style={[
+              st.doneModalCard,
+              {
+                backgroundColor: colors.card,
+                transform: [{ scale: modalBounce }],
+                opacity: modalOpacity,
+              },
+            ]}
+          >
+            {chefAvatar ? (
+              <Image
+                source={{ uri: chefAvatar }}
+                style={st.doneAvatar}
+              />
+            ) : (
+              <View style={[st.doneAvatarPlaceholder, { backgroundColor: colors.accentBg }]}>
+                <Volume2 size={32} color={colors.accent} strokeWidth={2} />
+              </View>
+            )}
+            <View style={st.doneSpeechBubble}>
+              <Text style={[st.doneSpeechText, { color: colors.text }]}>
+                {doneModal?.name} is done, Chef!
+              </Text>
+            </View>
+            <View style={st.doneSpeechArrow} />
+            {!chefAvatar && (
+              <Text style={[st.doneUpsell, { color: colors.textMuted }]}>
+                Create your Chef Avatar to see yourself here!
+              </Text>
+            )}
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -777,5 +942,65 @@ const st = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Done modal
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  doneModalCard: {
+    alignItems: "center",
+    padding: 28,
+    borderRadius: 20,
+    width: 260,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  doneAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
+  },
+  doneAvatarPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  doneSpeechBubble: {
+    backgroundColor: "#16A34A",
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    marginBottom: 4,
+  },
+  doneSpeechText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  doneSpeechArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "#16A34A",
+    marginBottom: 8,
+  },
+  doneUpsell: {
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 4,
   },
 });
