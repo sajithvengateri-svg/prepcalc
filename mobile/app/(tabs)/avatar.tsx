@@ -9,6 +9,8 @@ import {
   Alert,
   Platform,
   Image,
+  Modal,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,7 +35,10 @@ import {
   CreditCard,
   Users,
   Copy,
+  Gift,
+  Zap,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
 import { supabase } from "../../src/lib/supabase";
@@ -82,7 +87,9 @@ const FUNC_NAME = "generate-anime-avatar";
 export default function AvatarScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, profile, useAvatarCredit, isLoading: authLoading } = useAuth();
+  const [showNoCreditModal, setShowNoCreditModal] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>("Anime");
   const [selectedMode, setSelectedMode] = useState<AvatarMode>("standard");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -316,6 +323,12 @@ export default function AvatarScreen() {
     if (authLoading) {
       // Session still loading, wait a moment and retry
       setTimeout(() => handleCapture(), 500);
+      return;
+    }
+
+    // Gate behind credits
+    if (profile && profile.avatarCredits <= 0) {
+      setShowNoCreditModal(true);
       return;
     }
 
@@ -1106,6 +1119,80 @@ export default function AvatarScreen() {
         onDismiss={() => setShowAuthSheet(false)}
         onSuccess={handleAuthSuccess}
       />
+
+      {/* 0-Credit Prompt Modal */}
+      <Modal
+        visible={showNoCreditModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNoCreditModal(false)}
+      >
+        <View style={s.noCreditOverlay}>
+          <View style={[s.noCreditCard, { backgroundColor: colors.card }]}>
+            <Text style={[s.noCreditTitle, { color: colors.text }]}>
+              You've used all your free credits!
+            </Text>
+            <Text style={[s.noCreditSub, { color: colors.textMuted }]}>
+              Your anime chef avatars were pretty epic though.
+            </Text>
+
+            <View style={[s.noCreditDivider, { borderColor: colors.border }]}>
+              <Text style={[s.noCreditDividerText, { color: colors.textMuted }]}>
+                Earn More (free)
+              </Text>
+            </View>
+
+            <Text style={[s.noCreditBody, { color: colors.textMuted }]}>
+              Share PrepCam with a friend.{"\n"}Each friend who joins = 1 credit.{"\n"}(up to 10 bonus credits)
+            </Text>
+
+            <TouchableOpacity
+              onPress={async () => {
+                setShowNoCreditModal(false);
+                const referralCode = profile?.referralCode || "";
+                const msg = `Hey! Check out PrepCam — it turns your selfie into an anime chef avatar. It's free and actually hilarious. Use my code ${referralCode} and we both get bonus credits.\n\nhttps://apps.apple.com/app/prepcam/id`;
+                try { await Share.share({ message: msg }); } catch {}
+              }}
+              style={[s.noCreditShareBtn, { backgroundColor: colors.accent }]}
+            >
+              <Gift size={18} color="#FFF" strokeWidth={2} />
+              <Text style={s.noCreditShareText}>Share with a Friend</Text>
+            </TouchableOpacity>
+
+            <View style={[s.noCreditDivider, { borderColor: colors.border }]}>
+              <Text style={[s.noCreditDividerText, { color: colors.textMuted }]}>
+                or Buy More
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowNoCreditModal(false);
+                router.push("/settings/buy-credits");
+              }}
+              style={[s.noCreditBuyBtn, { borderColor: colors.accent }]}
+            >
+              <Zap size={16} color={colors.accent} strokeWidth={2} />
+              <Text style={[s.noCreditBuyText, { color: colors.accent }]}>
+                View Credit Packs
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={[s.noCreditCredits, { color: colors.textMuted }]}>
+              0 credits remaining
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setShowNoCreditModal(false)}
+              style={s.noCreditClose}
+            >
+              <Text style={[s.noCreditCloseText, { color: colors.textMuted }]}>
+                Close
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1492,4 +1579,56 @@ const s = StyleSheet.create({
     padding: 16,
   },
   priorityText: { fontSize: 13, fontWeight: "600", lineHeight: 20 },
+  // 0-Credit Modal
+  noCreditOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  noCreditCard: {
+    borderRadius: 20,
+    padding: 28,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+  },
+  noCreditTitle: { fontSize: 18, fontWeight: "800", textAlign: "center", marginBottom: 8 },
+  noCreditSub: { fontSize: 14, textAlign: "center", marginBottom: 20, lineHeight: 20 },
+  noCreditDivider: {
+    borderTopWidth: 1,
+    width: "100%",
+    alignItems: "center",
+    paddingTop: 12,
+    marginBottom: 12,
+  },
+  noCreditDividerText: { fontSize: 12, fontWeight: "600", letterSpacing: 0.5 },
+  noCreditBody: { fontSize: 14, textAlign: "center", lineHeight: 20, marginBottom: 16 },
+  noCreditShareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: "100%",
+    marginBottom: 20,
+  },
+  noCreditShareText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  noCreditBuyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    width: "100%",
+    marginBottom: 16,
+  },
+  noCreditBuyText: { fontSize: 15, fontWeight: "600" },
+  noCreditCredits: { fontSize: 12, marginBottom: 12 },
+  noCreditClose: { paddingVertical: 8 },
+  noCreditCloseText: { fontSize: 14, fontWeight: "500" },
 });

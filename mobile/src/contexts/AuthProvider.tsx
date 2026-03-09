@@ -18,6 +18,7 @@ export interface UserProfile {
   email: string;
   avatarCredits: number;
   referralCode: string | null;
+  referralCreditsEarned: number;
 }
 
 interface AuthContextValue {
@@ -82,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Get or create profile
       const { data: existing } = await supabase
         .from("profiles")
-        .select("display_name, avatar_credits, referral_code")
+        .select("display_name, avatar_credits, referral_code, referral_credits_earned")
         .eq("id", user.id)
         .single();
 
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: user.email || "",
           avatarCredits: existing.avatar_credits ?? 3,
           referralCode: existing.referral_code,
+          referralCreditsEarned: existing.referral_credits_earned ?? 0,
         });
         return;
       }
@@ -126,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         avatarCredits: 3,
         referralCode,
+        referralCreditsEarned: 0,
       });
     } catch (err) {
       // Fallback profile from user metadata
@@ -134,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: user.email || "",
         avatarCredits: 3,
         referralCode: null,
+        referralCreditsEarned: 0,
       });
     }
   }, []);

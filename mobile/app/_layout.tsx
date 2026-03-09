@@ -48,6 +48,22 @@ export default function RootLayout() {
           name="reference/butchery-detail"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
+        <Stack.Screen
+          name="settings/privacy"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="settings/terms"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="settings/share-earn"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="settings/buy-credits"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
       </Stack>
       </AuthProvider>
     </ThemeProvider>

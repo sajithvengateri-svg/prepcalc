@@ -29,6 +29,7 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [isSignIn, setIsSignIn] = useState(false); // false = create account, true = sign in
 
   const handleApple = async () => {
@@ -71,7 +72,10 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
           email: trimmedEmail,
           password,
           options: {
-            data: { source: "prepcalc" },
+            data: {
+              source: "prepcalc",
+              ...(referralCode.trim() ? { referred_by: referralCode.trim().toUpperCase() } : {}),
+            },
           },
         });
         if (error) throw error;
@@ -184,6 +188,24 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
                     },
                   ]}
                 />
+                {!isSignIn && (
+                  <TextInput
+                    placeholder="Got a referral code? (optional)"
+                    placeholderTextColor={colors.textMuted}
+                    value={referralCode}
+                    onChangeText={setReferralCode}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    style={[
+                      st.input,
+                      {
+                        backgroundColor: colors.inputBg,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                  />
+                )}
                 <TouchableOpacity
                   onPress={handleEmailAuth}
                   style={[st.emailBtn, { backgroundColor: colors.accent }]}

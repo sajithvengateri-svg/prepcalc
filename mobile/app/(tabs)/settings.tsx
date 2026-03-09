@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import {
   Users,
   Shield,
@@ -26,7 +27,12 @@ import {
   Camera,
   Volume2,
   Check,
+  Gift,
+  CreditCard,
+  Copy,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import { useTheme, THEMES } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
 import { useTimerVoice, VOICE_OPTIONS, type VoiceStyle } from "../../src/hooks/useTimerVoice";
@@ -36,6 +42,7 @@ const FEATURE_PREVIEW_KEY = "show_feature_preview";
 export default function SettingsScreen() {
   const { themeId, colors, isDark, setTheme } = useTheme();
   const { user, profile, signOut } = useAuth();
+  const router = useRouter();
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
   const { voiceStyle, updateVoice, preview } = useTimerVoice();
@@ -187,20 +194,6 @@ export default function SettingsScreen() {
                   <Text style={[s.badgeText, { color: colors.accent }]}>{profile.avatarCredits}</Text>
                 </View>
               </View>
-              {profile.referralCode && (
-                <View style={[s.menuRow, { borderBottomColor: colors.border }]}>
-                  <View style={s.menuLeft}>
-                    <View style={[s.menuIconWrap, { backgroundColor: "#FEF3C7" }]}>
-                      <Users size={16} color="#D97706" strokeWidth={2} />
-                    </View>
-                    <View>
-                      <Text style={[s.menuLabel, { color: colors.text }]}>Referral Code</Text>
-                      <Text style={[s.menuSub, { color: colors.textMuted }]}>{profile.referralCode}</Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
-                </View>
-              )}
               <TouchableOpacity style={s.menuRow} onPress={handleSignOut}>
                 <View style={s.menuLeft}>
                   <View style={[s.menuIconWrap, { backgroundColor: colors.destructiveBg }]}>
@@ -330,6 +323,79 @@ export default function SettingsScreen() {
           })}
         </View>
 
+        {/* Credits & Sharing */}
+        {user && profile && (
+          <>
+            <Text style={[s.sectionTitle, { color: colors.textMuted }]}>
+              CREDITS & SHARING
+            </Text>
+            <View
+              style={[
+                s.menuCard,
+                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              ]}
+            >
+              <TouchableOpacity
+                style={[s.menuRow, { borderBottomColor: colors.border }]}
+                onPress={() => { tap(); router.push("/settings/share-earn"); }}
+              >
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: "#FEF3C7" }]}>
+                    <Gift size={16} color="#D97706" strokeWidth={2} />
+                  </View>
+                  <View>
+                    <Text style={[s.menuLabel, { color: colors.text }]}>
+                      Share PrepCam — Earn Credits
+                    </Text>
+                    <Text style={[s.menuSub, { color: colors.textMuted }]}>
+                      {profile.referralCreditsEarned ?? 0} / 10 referral credits earned
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.menuRow, { borderBottomColor: colors.border }]}
+                onPress={() => { tap(); router.push("/settings/buy-credits"); }}
+              >
+                <View style={s.menuLeft}>
+                  <View style={[s.menuIconWrap, { backgroundColor: "#E0E7FF" }]}>
+                    <CreditCard size={16} color="#4F46E5" strokeWidth={2} />
+                  </View>
+                  <Text style={[s.menuLabel, { color: colors.text }]}>
+                    Buy More Credits
+                  </Text>
+                </View>
+                <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
+              </TouchableOpacity>
+              {profile.referralCode && (
+                <TouchableOpacity
+                  style={s.menuRow}
+                  onPress={async () => {
+                    await Clipboard.setStringAsync(profile.referralCode!);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    Alert.alert("Copied!", "Referral code copied to clipboard.");
+                  }}
+                >
+                  <View style={s.menuLeft}>
+                    <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
+                      <Copy size={16} color={colors.accent} strokeWidth={2} />
+                    </View>
+                    <View>
+                      <Text style={[s.menuLabel, { color: colors.text }]}>
+                        Your Code: {profile.referralCode}
+                      </Text>
+                      <Text style={[s.menuSub, { color: colors.textMuted }]}>
+                        Tap to copy
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        )}
+
         {/* About */}
         <Text style={[s.sectionTitle, { color: colors.textMuted }]}>ABOUT</Text>
         <View
@@ -342,7 +408,7 @@ export default function SettingsScreen() {
             style={[s.menuRow, { borderBottomColor: colors.border }]}
             onPress={() => {
               tap();
-              Linking.openURL("https://prepmi.com.au/privacy");
+              router.push("/settings/privacy");
             }}
           >
             <View style={s.menuLeft}>
@@ -361,7 +427,7 @@ export default function SettingsScreen() {
             style={[s.menuRow, { borderBottomColor: colors.border }]}
             onPress={() => {
               tap();
-              Linking.openURL("https://prepmi.com.au/terms");
+              router.push("/settings/terms");
             }}
           >
             <View style={s.menuLeft}>
@@ -380,7 +446,10 @@ export default function SettingsScreen() {
             style={s.menuRow}
             onPress={() => {
               tap();
-              Linking.openURL("mailto:hello@prepmi.com.au?subject=PrepCam Feedback");
+              const appVersion = Constants.expoConfig?.version || "1.0.0";
+              const deviceInfo = `${Platform.OS} ${Platform.Version}`;
+              const body = encodeURIComponent(`\n\n---\nApp: PrepCam v${appVersion}\nDevice: ${deviceInfo}`);
+              Linking.openURL(`mailto:feedback@prepmi.au?subject=PrepCam%20Feedback&body=${body}`);
             }}
           >
             <View style={s.menuLeft}>
@@ -398,7 +467,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={[s.footer, { color: colors.textMuted }]}>
-          PrepCam by Prep Mi · v1.0.0
+          PrepCam by Prep Mi · v{Constants.expoConfig?.version || "1.0.0"}
         </Text>
 
         <View style={{ height: 40 }} />
