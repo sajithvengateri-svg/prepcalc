@@ -31,6 +31,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   useAvatarCredit: () => Promise<boolean>;
+  addCredits: (amount: number) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -43,6 +44,7 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
   refreshProfile: async () => {},
   useAvatarCredit: async () => false,
+  addCredits: async () => false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -245,6 +247,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, [user, profile]);
 
+  const addCredits = useCallback(async (amount: number): Promise<boolean> => {
+    if (!user || !profile) return false;
+
+    const newCredits = profile.avatarCredits + amount;
+    await supabase
+      .from("profiles")
+      .update({ avatar_credits: newCredits })
+      .eq("id", user.id);
+
+    setProfile((prev) => prev ? { ...prev, avatarCredits: newCredits } : prev);
+    return true;
+  }, [user, profile]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -257,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         refreshProfile,
         useAvatarCredit,
+        addCredits,
       }}
     >
       {children}

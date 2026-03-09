@@ -1,13 +1,14 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Shield } from "lucide-react-native";
+import { View, Text, Image, StyleSheet } from "react-native";
 
 export default function IntroSlide() {
   return (
     <View style={s.container}>
-      <View style={s.logo}>
-        <Shield size={28} color="#FFFFFF" strokeWidth={2} fill="#16A34A" />
-      </View>
+      <Image
+        source={require("../../../assets/images/logo.png")}
+        style={s.logo}
+        resizeMode="cover"
+      />
       <Text style={s.brand}>Prep Mi</Text>
       <View style={s.gap} />
       <Text style={s.headline}>Built by chefs, for chefs</Text>
@@ -25,17 +26,14 @@ const s = StyleSheet.create({
     padding: 24,
   },
   logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#16A34A",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+    marginBottom: 12,
   },
   brand: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
     textAlign: "center",
   },

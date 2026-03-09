@@ -52,10 +52,35 @@ type AvatarMode = "standard" | "kitchen_pass" | "manga_menu";
 type GenPhase = "idle" | "loading" | "result" | "error" | "timeout";
 
 const AVATAR_MODES: { id: AvatarMode; label: string; desc: string; icon: typeof Camera; accent: string }[] = [
-  { id: "standard", label: "Yes, Chef!", desc: "Split-screen: reality vs anime", icon: Columns2, accent: "#EF4444" },
+  { id: "standard", label: "Channel Your Inner Chef", desc: "Your selfie, anime-fied", icon: Sparkles, accent: "#EF4444" },
   { id: "kitchen_pass", label: "Kitchen Pass", desc: "Anime ID card with your title", icon: CreditCard, accent: "#7C3AED" },
   { id: "manga_menu", label: "Manga Menu", desc: "Group photo to manga crew", icon: Users, accent: "#2563EB" },
 ];
+
+const CHEF_TITLES = [
+  "Grill Superstar",
+  "Sauce Stallone",
+  "Pastry Picasso",
+  "Wok Legend",
+  "Knife Ninja",
+  "Sauté Samurai",
+  "Flavour Boss",
+  "Umami King",
+  "Mise en Place Master",
+  "The Sous Whisperer",
+  "Brûlée Baron",
+  "Dough Commander",
+  "Plating Prodigy",
+  "Char Grillionaire",
+  "Spice Architect",
+  "Reduction Royalty",
+  "Pan Flip Phantom",
+  "Fermentation Wizard",
+  "Braise Blazer",
+  "The Julienne Jedi",
+];
+
+const getRandomTitle = () => CHEF_TITLES[Math.floor(Math.random() * CHEF_TITLES.length)];
 
 const TIMEOUT_MS = 60_000; // 60s hard timeout
 const POLL_INTERVAL_MS = 3_000; // 3s polling
@@ -92,6 +117,7 @@ export default function AvatarScreen() {
   const [showNoCreditModal, setShowNoCreditModal] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>("Anime");
   const [selectedMode, setSelectedMode] = useState<AvatarMode>("standard");
+  const [chefTitle, setChefTitle] = useState(getRandomTitle);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [genPhase, setGenPhase] = useState<GenPhase>("idle");
@@ -376,11 +402,17 @@ export default function AvatarScreen() {
 
     try {
       // Step 1: Start — sends selfie, gets back job_id immediately
+      // Assign a fresh random title for kitchen pass mode
+      if (selectedMode === "kitchen_pass") {
+        setChefTitle(getRandomTitle());
+      }
+
       const { data: startData, error: startError } = await supabase.functions.invoke(FUNC_NAME, {
         body: {
           image_base64: base64,
           style: selectedStyle.toLowerCase(),
           avatar_mode: selectedMode,
+          ...(selectedMode === "kitchen_pass" ? { chef_title: chefTitle } : {}),
         },
       });
 
@@ -389,6 +421,9 @@ export default function AvatarScreen() {
 
       const jobId = startData.job_id;
       jobIdRef.current = jobId;
+
+      // Deduct one avatar credit on successful generation start
+      await useAvatarCredit();
 
       // Step 2: Start polling every 3s
       startPolling(jobId);
@@ -443,47 +478,27 @@ export default function AvatarScreen() {
 
   const handleShare = async () => {
     tap();
-    if (shareCredits > 0) {
-      if (!generatedImage || generatedImage === "placeholder") {
-        await useAvatarCredit();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert("Share", currentCaption);
-        return;
-      }
-      try {
-        const fileUri = FileSystem.cacheDirectory + "anime-avatar-share.png";
-        await FileSystem.downloadAsync(generatedImage, fileUri);
+    if (!generatedImage || generatedImage === "placeholder") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Share", currentCaption);
+      return;
+    }
+    try {
+      const fileUri = FileSystem.cacheDirectory + "anime-avatar-share.png";
+      await FileSystem.downloadAsync(generatedImage, fileUri);
 
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await useAvatarCredit();
-          await Sharing.shareAsync(fileUri, {
-            mimeType: "image/png",
-            dialogTitle: currentCaption,
-          });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          Alert.alert("Sharing not available on this device");
-        }
-      } catch (err: any) {
-        Alert.alert("Share Failed", err.message || "Could not share image.");
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "image/png",
+          dialogTitle: currentCaption,
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Alert.alert("Sharing not available on this device");
       }
-    } else {
-      Alert.alert(
-        "Get 3 More Shares",
-        "$1 AUD for 3 additional shares.\n\nProduct ID: au.prepmi.prepcalc.anime.unlock",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Buy 3 Shares — $1",
-            onPress: () => {
-              // TODO: In-app purchase integration
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert("Coming Soon", "In-app purchases not yet available.");
-            },
-          },
-        ]
-      );
+    } catch (err: any) {
+      Alert.alert("Share Failed", err.message || "Could not share image.");
     }
   };
 
@@ -737,6 +752,13 @@ export default function AvatarScreen() {
               </Animated.View>
             </View>
 
+            {/* Chef Title — Kitchen Pass mode */}
+            {selectedMode === "kitchen_pass" && (
+              <View style={s.chefTitleBadge}>
+                <Text style={s.chefTitleText}>{chefTitle}</Text>
+              </View>
+            )}
+
             {/* Caption */}
             <View style={s.captionSection}>
               <Text style={[s.captionLabel, { color: colors.textMuted }]}>Caption</Text>
@@ -751,12 +773,12 @@ export default function AvatarScreen() {
               </View>
             </View>
 
-            {/* Share credits badge */}
+            {/* Credits badge */}
             <View style={[s.creditsBadge, { backgroundColor: shareCredits > 0 ? "#DCFCE7" : "#FEF3C7" }]}>
               <Text style={[s.creditsBadgeText, { color: shareCredits > 0 ? "#16A34A" : "#D97706" }]}>
                 {shareCredits > 0
-                  ? `${shareCredits} free share${shareCredits !== 1 ? "s" : ""} left`
-                  : "Buy 3 shares for $1"}
+                  ? `${shareCredits} credit${shareCredits !== 1 ? "s" : ""} remaining`
+                  : "No credits remaining"}
               </Text>
             </View>
 
@@ -786,7 +808,7 @@ export default function AvatarScreen() {
               >
                 <Share2 size={18} color="#FFFFFF" strokeWidth={2} />
                 <Text style={s.actionBtnPrimaryText}>
-                  {shareCredits > 0 ? "Share" : "Share — $1"}
+                  Share
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1481,6 +1503,20 @@ const s = StyleSheet.create({
   },
   saveBtnText: { fontSize: 14, fontWeight: "600" },
   // Caption
+  chefTitleBadge: {
+    marginTop: 12,
+    backgroundColor: "#7C3AED",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignSelf: "center",
+  },
+  chefTitleText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
   captionSection: {
     marginTop: 12,
     width: "100%",

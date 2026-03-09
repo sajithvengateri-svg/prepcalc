@@ -16,31 +16,53 @@ import { ArrowLeft, Sparkles, Zap } from "lucide-react-native";
 import { useTheme } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
 
+const MAX_CREDITS = 10;
+
 const CREDIT_PACKS = [
   {
     credits: 5,
     price: "$0.99",
     desc: "That's 5 anime chef avatars",
     popular: false,
+    enabled: true,
   },
   {
     credits: 15,
     price: "$1.99",
     desc: "Best value — $0.13 each",
     popular: true,
+    enabled: false,
   },
 ];
 
 export default function BuyCreditsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, addCredits } = useAuth();
 
-  const handleBuy = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  const currentCredits = profile?.avatarCredits ?? 0;
+
+  const handleBuy = (credits: number) => {
+    if (currentCredits + credits > MAX_CREDITS) {
+      Alert.alert("Credit Limit", `Maximum ${MAX_CREDITS} credits. You currently have ${currentCredits}.`);
+      return;
+    }
     Alert.alert(
-      "Coming Soon",
-      "Credit purchases are launching shortly. Stay tuned!"
+      "Sandbox Purchase",
+      `Add ${credits} credits for testing?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: `Add ${credits} Credits`,
+          onPress: async () => {
+            const ok = await addCredits(credits);
+            if (ok) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert("Done", `${credits} credits added!`);
+            }
+          },
+        },
+      ]
     );
   };
 
@@ -92,11 +114,12 @@ export default function BuyCreditsScreen() {
               {pack.desc}
             </Text>
             <TouchableOpacity
-              onPress={handleBuy}
-              style={[s.buyBtn, { backgroundColor: colors.accent }]}
+              onPress={() => pack.enabled ? handleBuy(pack.credits) : null}
+              disabled={!pack.enabled}
+              style={[s.buyBtn, { backgroundColor: pack.enabled ? colors.accent : colors.border }]}
             >
               <Zap size={16} color="#FFF" strokeWidth={2} />
-              <Text style={s.buyBtnText}>Buy</Text>
+              <Text style={s.buyBtnText}>{pack.enabled ? "Buy" : "Coming Soon"}</Text>
             </TouchableOpacity>
           </View>
         ))}

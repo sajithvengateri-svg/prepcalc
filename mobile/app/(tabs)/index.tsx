@@ -43,7 +43,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function getGreeting(userName?: string): string {
   if (userName) {
-    return `Yes, Chef. ${userName}`;
+    return `Yes, Chef ${userName}`;
   }
   return "Yes, Chef";
 }
@@ -347,8 +347,8 @@ export default function HomeScreen() {
         </Text>
         {[
           {
-            name: "Yes, Chef! Challenge",
-            desc: "Split-screen: reality vs anime. Share the before and after",
+            name: "Channel Your Inner Chef",
+            desc: "Your selfie, anime-fied. The default mode",
             icon: Columns2,
             accent: "#EF4444",
           },

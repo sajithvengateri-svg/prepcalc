@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ScrollView,
   Alert,
 } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -98,16 +99,20 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
       transparent
       onRequestClose={onDismiss}
     >
-      <TouchableOpacity
-        style={st.overlay}
-        activeOpacity={1}
-        onPress={onDismiss}
-      />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={st.keyboardWrap}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        <View style={[st.sheet, { backgroundColor: colors.card }]}>
+        <TouchableOpacity
+          style={st.overlay}
+          activeOpacity={1}
+          onPress={onDismiss}
+        />
+        <ScrollView
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[st.sheet, { backgroundColor: colors.card }]}
+        >
           {/* Handle */}
           <View style={[st.handle, { backgroundColor: colors.border }]} />
 
@@ -231,7 +236,7 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
           <Text style={[st.footnote, { color: colors.textMuted }]}>
             One tap. 3 free avatars waiting.
           </Text>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -242,9 +247,6 @@ const st = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
-  keyboardWrap: {
-    justifyContent: "flex-end",
-  },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -252,6 +254,8 @@ const st = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 40 : 24,
     paddingTop: 12,
     alignItems: "center",
+    flexGrow: 1,
+    justifyContent: "flex-end",
   },
   handle: {
     width: 40,

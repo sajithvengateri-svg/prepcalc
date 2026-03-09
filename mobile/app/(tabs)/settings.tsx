@@ -36,6 +36,7 @@ import * as Clipboard from "expo-clipboard";
 import { useTheme, THEMES } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
 import { useTimerVoice, VOICE_OPTIONS, type VoiceStyle } from "../../src/hooks/useTimerVoice";
+import AuthSheet from "../../src/components/AuthSheet";
 
 const FEATURE_PREVIEW_KEY = "show_feature_preview";
 
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
   const { voiceStyle, updateVoice, preview } = useTimerVoice();
   const [chefAvatar, setChefAvatar] = useState<string | null>(null);
   const [showFeaturePreview, setShowFeaturePreview] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(FEATURE_PREVIEW_KEY).then((val) => {
@@ -219,7 +221,7 @@ export default function SettingsScreen() {
                   <Text style={[s.badgeText, { color: colors.accent }]}>Free</Text>
                 </View>
               </View>
-              <View style={s.menuRow}>
+              <TouchableOpacity style={s.menuRow} onPress={() => setShowAuth(true)}>
                 <View style={s.menuLeft}>
                   <View style={[s.menuIconWrap, { backgroundColor: colors.accentBg }]}>
                     <Camera size={16} color={colors.accent} strokeWidth={2} />
@@ -230,7 +232,7 @@ export default function SettingsScreen() {
                   </View>
                 </View>
                 <ChevronRight size={18} color={colors.textMuted} strokeWidth={2} />
-              </View>
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -472,6 +474,11 @@ export default function SettingsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      <AuthSheet
+        visible={showAuth}
+        onDismiss={() => setShowAuth(false)}
+        onSuccess={() => setShowAuth(false)}
+      />
     </SafeAreaView>
   );
 }
