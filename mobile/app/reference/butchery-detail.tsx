@@ -220,9 +220,6 @@ function CutCard({ cut, colors }: { cut: Cut; colors: any }) {
     >
       <View style={s.cutHeader}>
         <Text style={[s.cutName, { color: colors.text }]}>{cut.name}</Text>
-        <Text style={[s.cutPrice, { color: colors.text }]}>
-          ${cut.costPerKg}/kg
-        </Text>
       </View>
       <View style={s.cutStats}>
         <View style={s.yieldWrap}>
@@ -356,7 +353,6 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   cutName: { fontSize: 15, fontWeight: "600" },
-  cutPrice: { fontSize: 14, fontWeight: "700" },
   cutStats: {
     flexDirection: "row",
     alignItems: "center",
