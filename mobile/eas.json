@@ -18,6 +18,14 @@
         "buildType": "apk"
       }
     },
+    "testflight": {
+      "distribution": "store",
+      "credentialsSource": "remote",
+      "node": "22.12.0",
+      "ios": {
+        "autoIncrement": true
+      }
+    },
     "production": {
       "autoIncrement": true,
       "credentialsSource": "remote",
