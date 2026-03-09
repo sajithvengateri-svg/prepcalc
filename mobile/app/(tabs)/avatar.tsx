@@ -46,6 +46,7 @@ import AdSlideshow from "../../src/components/AdSlideshow";
 import PaintSplash from "../../src/components/PaintSplash";
 import AuthSheet from "../../src/components/AuthSheet";
 import CalligraphyPhase from "../../src/components/CalligraphyPhase";
+import OnboardingWalkthrough from "../../src/components/OnboardingWalkthrough";
 
 type AvatarStyle = "Anime" | "Ghibli" | "Pixel" | "Comic";
 type AvatarMode = "standard" | "kitchen_pass" | "manga_menu";
@@ -125,6 +126,7 @@ export default function AvatarScreen() {
   const [statusIndex, setStatusIndex] = useState(0);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [showFeaturePreview, setShowFeaturePreview] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [inCalligraphyPhase, setInCalligraphyPhase] = useState(false);
   // Share credits from profile or default 3
   const shareCredits = profile?.avatarCredits ?? 3;
@@ -135,6 +137,20 @@ export default function AvatarScreen() {
       if (val !== null) setShowFeaturePreview(val === "true");
     });
   }, []);
+
+  // Show onboarding walkthrough on first sign-in
+  useEffect(() => {
+    if (user) {
+      AsyncStorage.getItem("onboarding_seen").then((val) => {
+        if (!val) setShowOnboarding(true);
+      });
+    }
+  }, [user]);
+
+  const handleOnboardingDone = () => {
+    setShowOnboarding(false);
+    AsyncStorage.setItem("onboarding_seen", "true");
+  };
 
   // Refs for managing async generation flow
   const jobIdRef = useRef<string | null>(null);
@@ -1140,6 +1156,11 @@ export default function AvatarScreen() {
         visible={showAuthSheet}
         onDismiss={() => setShowAuthSheet(false)}
         onSuccess={handleAuthSuccess}
+      />
+
+      <OnboardingWalkthrough
+        visible={showOnboarding}
+        onDone={handleOnboardingDone}
       />
 
       {/* 0-Credit Prompt Modal */}

@@ -13,7 +13,7 @@ import {
   Alert,
 } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { Lock } from "lucide-react-native";
+import { Lock, Mail, CheckCircle } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeProvider";
 import { useAuth } from "../contexts/AuthProvider";
 import { supabase } from "../lib/supabase";
@@ -32,6 +32,7 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
   const [password, setPassword] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [isSignIn, setIsSignIn] = useState(false); // false = create account, true = sign in
+  const [confirmationSent, setConfirmationSent] = useState(false); // show "check email" screen
 
   const handleApple = async () => {
     setLoading(true);
@@ -68,8 +69,8 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
         });
         if (error) throw error;
       } else {
-        // Create new account — no email confirmation
-        const { error } = await supabase.auth.signUp({
+        // Create new account
+        const { data, error } = await supabase.auth.signUp({
           email: trimmedEmail,
           password,
           options: {
@@ -80,6 +81,34 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
           },
         });
         if (error) throw error;
+
+        // Supabase returns a fake user with no session when email already exists
+        // (to prevent email enumeration). Detect and redirect to sign-in.
+        if (data?.user && !data.session) {
+          setLoading(false);
+          Alert.alert(
+            "Account Exists",
+            "This email is already registered. Tap OK to sign in.",
+            [{ text: "OK", onPress: () => setIsSignIn(true) }]
+          );
+          return;
+        }
+
+        // Also catch: identities array is empty = email exists (another Supabase signal)
+        if (data?.user?.identities && data.user.identities.length === 0) {
+          setLoading(false);
+          Alert.alert(
+            "Account Exists",
+            "This email is already registered. Tap OK to sign in.",
+            [{ text: "OK", onPress: () => setIsSignIn(true) }]
+          );
+          return;
+        }
+
+        // Email confirmation required — show "check your email" screen
+        setLoading(false);
+        setConfirmationSent(true);
+        return;
       }
       setLoading(false);
       onSuccess();
@@ -116,126 +145,181 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
           {/* Handle */}
           <View style={[st.handle, { backgroundColor: colors.border }]} />
 
-          {/* Lock icon */}
-          <View style={[st.lockCircle, { backgroundColor: colors.accentBg }]}>
-            <Lock size={24} color={colors.accent} strokeWidth={2} />
-          </View>
-
-          <Text style={[st.title, { color: colors.text }]}>
-            Sign in to create your{"\n"}Anime Chef Avatar
-          </Text>
-
-          {loading ? (
-            <ActivityIndicator size="large" color={colors.accent} style={{ marginVertical: 24 }} />
-          ) : (
+          {confirmationSent ? (
+            /* ---- CHECK YOUR EMAIL SCREEN ---- */
             <>
-              {/* Social auth buttons */}
-              <View style={st.buttons}>
-                {Platform.OS === "ios" && (
-                  <AppleAuthentication.AppleAuthenticationButton
-                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                    cornerRadius={14}
-                    style={st.socialBtn}
-                    onPress={handleApple}
-                  />
-                )}
-                <TouchableOpacity
-                  onPress={handleGoogle}
-                  style={[st.googleBtn, { borderColor: colors.border }]}
-                >
-                  <Text style={[st.googleBtnText, { color: colors.text }]}>
-                    Sign in with Google
-                  </Text>
-                </TouchableOpacity>
+              <View style={[st.lockCircle, { backgroundColor: "#DCFCE7" }]}>
+                <Mail size={24} color="#16A34A" strokeWidth={2} />
               </View>
 
-              {/* Divider */}
-              <View style={st.dividerRow}>
-                <View style={[st.dividerLine, { backgroundColor: colors.border }]} />
-                <Text style={[st.dividerText, { color: colors.textMuted }]}>or</Text>
-                <View style={[st.dividerLine, { backgroundColor: colors.border }]} />
-              </View>
+              <Text style={[st.title, { color: colors.text }]}>
+                Check your email
+              </Text>
 
-              {/* Email / Password */}
-              <View style={st.fields}>
-                <TextInput
-                  placeholder="Email"
-                  placeholderTextColor={colors.textMuted}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  style={[
-                    st.input,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                />
-                <TextInput
-                  placeholder="Password"
-                  placeholderTextColor={colors.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  textContentType={isSignIn ? "password" : "newPassword"}
-                  style={[
-                    st.input,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                />
-                {!isSignIn && (
-                  <TextInput
-                    placeholder="Got a referral code? (optional)"
-                    placeholderTextColor={colors.textMuted}
-                    value={referralCode}
-                    onChangeText={setReferralCode}
-                    autoCapitalize="characters"
-                    autoCorrect={false}
-                    style={[
-                      st.input,
-                      {
-                        backgroundColor: colors.inputBg,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                  />
-                )}
-                <TouchableOpacity
-                  onPress={handleEmailAuth}
-                  style={[st.emailBtn, { backgroundColor: colors.accent }]}
-                >
-                  <Text style={st.emailBtnText}>
-                    {isSignIn ? "Sign In" : "Create Account"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={[st.confirmText, { color: colors.textMuted }]}>
+                We sent a confirmation link to{"\n"}
+                <Text style={{ fontWeight: "700", color: colors.text }}>{email}</Text>
+                {"\n\n"}Tap the link in the email, then come back and sign in.
+              </Text>
 
-              {/* Toggle sign in / create */}
-              <TouchableOpacity onPress={() => setIsSignIn(!isSignIn)} style={st.toggleRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  setConfirmationSent(false);
+                  setIsSignIn(true);
+                }}
+                style={[st.emailBtn, { backgroundColor: colors.accent, marginTop: 20, width: "100%" }]}
+              >
+                <Text style={st.emailBtnText}>I've Confirmed — Sign In</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  const trimmedEmail = email.trim().toLowerCase();
+                  const { error } = await supabase.auth.resend({
+                    type: "signup",
+                    email: trimmedEmail,
+                  });
+                  if (error) {
+                    Alert.alert("Resend Failed", error.message);
+                  } else {
+                    Alert.alert("Sent", "Confirmation email resent.");
+                  }
+                }}
+                style={st.toggleRow}
+              >
                 <Text style={[st.toggleText, { color: colors.textMuted }]}>
-                  {isSignIn ? "Don't have an account? " : "Already have one? "}
+                  {"Didn't get it? "}
                 </Text>
                 <Text style={[st.toggleLink, { color: colors.accent }]}>
-                  {isSignIn ? "Create Account" : "Sign In"}
+                  Resend Email
                 </Text>
               </TouchableOpacity>
             </>
-          )}
+          ) : (
+            /* ---- MAIN AUTH SCREEN ---- */
+            <>
+              {/* Lock icon */}
+              <View style={[st.lockCircle, { backgroundColor: colors.accentBg }]}>
+                <Lock size={24} color={colors.accent} strokeWidth={2} />
+              </View>
 
-          <Text style={[st.footnote, { color: colors.textMuted }]}>
-            One tap. 3 free avatars waiting.
-          </Text>
+              <Text style={[st.title, { color: colors.text }]}>
+                Sign in to create your{"\n"}Anime Chef Avatar
+              </Text>
+
+              {loading ? (
+                <ActivityIndicator size="large" color={colors.accent} style={{ marginVertical: 24 }} />
+              ) : (
+                <>
+                  {/* Social auth buttons */}
+                  <View style={st.buttons}>
+                    {Platform.OS === "ios" && (
+                      <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                        cornerRadius={14}
+                        style={st.socialBtn}
+                        onPress={handleApple}
+                      />
+                    )}
+                    <TouchableOpacity
+                      onPress={handleGoogle}
+                      style={[st.googleBtn, { borderColor: colors.border }]}
+                    >
+                      <Text style={[st.googleBtnText, { color: colors.text }]}>
+                        Sign in with Google
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Divider */}
+                  <View style={st.dividerRow}>
+                    <View style={[st.dividerLine, { backgroundColor: colors.border }]} />
+                    <Text style={[st.dividerText, { color: colors.textMuted }]}>or</Text>
+                    <View style={[st.dividerLine, { backgroundColor: colors.border }]} />
+                  </View>
+
+                  {/* Email / Password */}
+                  <View style={st.fields}>
+                    <TextInput
+                      placeholder="Email"
+                      placeholderTextColor={colors.textMuted}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      textContentType="emailAddress"
+                      style={[
+                        st.input,
+                        {
+                          backgroundColor: colors.inputBg,
+                          borderColor: colors.border,
+                          color: colors.text,
+                        },
+                      ]}
+                    />
+                    <TextInput
+                      placeholder="Password"
+                      placeholderTextColor={colors.textMuted}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      textContentType={isSignIn ? "password" : "newPassword"}
+                      style={[
+                        st.input,
+                        {
+                          backgroundColor: colors.inputBg,
+                          borderColor: colors.border,
+                          color: colors.text,
+                        },
+                      ]}
+                    />
+                    {!isSignIn && (
+                      <TextInput
+                        placeholder="Got a referral code? (optional)"
+                        placeholderTextColor={colors.textMuted}
+                        value={referralCode}
+                        onChangeText={setReferralCode}
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                        style={[
+                          st.input,
+                          {
+                            backgroundColor: colors.inputBg,
+                            borderColor: colors.border,
+                            color: colors.text,
+                          },
+                        ]}
+                      />
+                    )}
+                    <TouchableOpacity
+                      onPress={handleEmailAuth}
+                      style={[st.emailBtn, { backgroundColor: colors.accent }]}
+                    >
+                      <Text style={st.emailBtnText}>
+                        {isSignIn ? "Sign In" : "Create Account"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Toggle sign in / create */}
+                  <TouchableOpacity onPress={() => setIsSignIn(!isSignIn)} style={st.toggleRow}>
+                    <Text style={[st.toggleText, { color: colors.textMuted }]}>
+                      {isSignIn ? "Don't have an account? " : "Already have one? "}
+                    </Text>
+                    <Text style={[st.toggleLink, { color: colors.accent }]}>
+                      {isSignIn ? "Create Account" : "Sign In"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              <Text style={[st.footnote, { color: colors.textMuted }]}>
+                One tap. 3 free avatars waiting.
+              </Text>
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -347,6 +431,11 @@ const st = StyleSheet.create({
   toggleLink: {
     fontSize: 13,
     fontWeight: "700",
+  },
+  confirmText: {
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
   },
   footnote: {
     fontSize: 13,

@@ -41,8 +41,18 @@ const CHEF_AVATAR_KEY = "chef_avatar_url";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+function isRealName(name?: string): boolean {
+  if (!name || name.length < 2) return false;
+  // Filter out "Chef" fallback, relay emails, random strings
+  if (name === "Chef") return false;
+  if (name.includes("@")) return false;
+  // Random strings: mostly non-alpha or too short to be a name
+  if (!/^[a-zA-Z\s\-'\.]+$/.test(name)) return false;
+  return true;
+}
+
 function getGreeting(userName?: string): string {
-  if (userName) {
+  if (userName && isRealName(userName)) {
     return `Yes, Chef ${userName}`;
   }
   return "Yes, Chef";

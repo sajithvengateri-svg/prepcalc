@@ -79,6 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check if a name looks real (not a relay email or random string)
+  const isValidName = (name?: string | null): boolean => {
+    if (!name || name.length < 2) return false;
+    if (name === "Chef") return false;
+    if (name.includes("@")) return false;
+    if (!/^[a-zA-Z\s\-'\.]+$/.test(name)) return false;
+    return true;
+  };
+
   // Load or create user profile from Supabase
   const loadProfile = useCallback(async (user: User) => {
     try {
@@ -90,8 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (existing) {
+        const rawName = existing.display_name || user.user_metadata?.full_name;
         setProfile({
-          displayName: existing.display_name || user.user_metadata?.full_name || "Chef",
+          displayName: isValidName(rawName) ? rawName! : "",
           email: user.email || "",
           avatarCredits: existing.avatar_credits ?? 3,
           referralCode: existing.referral_code,
@@ -101,7 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // First sign-in: create profile + referral code + waitlist entry
-      const displayName = user.user_metadata?.full_name || "Chef";
+      const rawName = user.user_metadata?.full_name;
+      const displayName = isValidName(rawName) ? rawName : "";
       const email = user.email || "";
       let referralCode: string | null = null;
 
@@ -134,8 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (err) {
       // Fallback profile from user metadata
+      const rawName = user.user_metadata?.full_name;
       setProfile({
-        displayName: user.user_metadata?.full_name || "Chef",
+        displayName: isValidName(rawName) ? rawName : "",
         email: user.email || "",
         avatarCredits: 3,
         referralCode: null,
@@ -169,6 +181,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("No identity token from Apple");
       }
 
+      // Capture Apple's full name (only provided on first sign-in)
+      const appleName = [
+        credential.fullName?.givenName,
+        credential.fullName?.familyName,
+      ].filter(Boolean).join(" ") || undefined;
+
       const { error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken,
@@ -176,6 +194,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) throw error;
+
+      // If Apple provided a name, save it to profile
+      if (appleName) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          await supabase.from("profiles").upsert({
+            id: currentUser.id,
+            display_name: appleName,
+          }, { onConflict: "id" });
+        }
+      }
+
       return true;
     } catch (err: any) {
       if (err.code === "ERR_REQUEST_CANCELED") return false;
@@ -199,17 +229,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data?.url) {
         const WebBrowser = await import("expo-web-browser");
+        // Warm up browser on Android for better UX
+        if (Platform.OS === "android") {
+          await WebBrowser.warmUpAsync();
+        }
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
           "prepcalc://auth/callback"
         );
+        if (Platform.OS === "android") {
+          await WebBrowser.coolDownAsync();
+        }
 
         if (result.type === "success" && result.url) {
-          // Extract tokens from URL fragment
-          const url = new URL(result.url);
-          const params = new URLSearchParams(url.hash.slice(1));
-          const accessToken = params.get("access_token");
-          const refreshToken = params.get("refresh_token");
+          // Extract tokens from URL — could be in hash fragment or query params
+          const resultUrl = result.url;
+          let accessToken: string | null = null;
+          let refreshToken: string | null = null;
+
+          // Try hash fragment first (standard OAuth implicit flow)
+          const hashIndex = resultUrl.indexOf("#");
+          if (hashIndex !== -1) {
+            const params = new URLSearchParams(resultUrl.slice(hashIndex + 1));
+            accessToken = params.get("access_token");
+            refreshToken = params.get("refresh_token");
+          }
+
+          // Fallback: try query params
+          if (!accessToken) {
+            const qIndex = resultUrl.indexOf("?");
+            if (qIndex !== -1) {
+              const params = new URLSearchParams(resultUrl.slice(qIndex + 1));
+              accessToken = params.get("access_token");
+              refreshToken = params.get("refresh_token");
+            }
+          }
 
           if (accessToken && refreshToken) {
             await supabase.auth.setSession({
