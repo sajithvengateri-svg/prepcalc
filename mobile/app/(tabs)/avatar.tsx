@@ -470,16 +470,13 @@ export default function AvatarScreen() {
   const getCaption = (mode: AvatarMode, title?: string): string => {
     switch (mode) {
       case "standard":
-        if (selectedMode === "standard") {
-          return "How I feel at 7PM on a Saturday vs how my mum thinks I look. Made with PrepCam #YesChef #KitchenLife";
-        }
-        return "Check out my anime chef look. Made with PrepCam #KitchenHero #AnimeChef";
+        return "AI turned me into an anime chef. Not even mad. Made with PrepCam #YesChef #AnimeChef";
       case "kitchen_pass":
-        return `Officially a ${title || "Verified Chef"}. Made with PrepCam #VerifiedChef #KitchenPass`;
+        return `Officially certified. Kitchen pass unlocked. Made with PrepCam #VerifiedChef #KitchenPass`;
       case "manga_menu":
-        return "The brigade, anime edition. Made with PrepCam #KitchenHero #TheBrigade";
+        return "The brigade, but make it anime. Made with PrepCam #YesChef #TheBrigade";
       default:
-        return "Check out my anime chef look. Made with PrepCam #KitchenHero #AnimeChef";
+        return "New profile pic just dropped. Made with PrepCam #YesChef #AnimeChef";
     }
   };
 
@@ -679,14 +676,25 @@ export default function AvatarScreen() {
               </View>
             )}
 
-            <Text style={[s.bubbleLabel, { color: colors.text }]}>
-              {authLoading ? "Loading..." : user ? "Tap to capture" : "Sign in to create"}
-            </Text>
-            <Text style={[s.bubbleSub, { color: colors.textMuted }]}>
-              {user
-                ? `${shareCredits} free avatar${shareCredits !== 1 ? "s" : ""} remaining`
-                : "One tap sign-in · 3 free avatars"}
-            </Text>
+            {!user && !authLoading ? (
+              <TouchableOpacity onPress={() => setShowAuthSheet(true)} activeOpacity={0.7}>
+                <Text style={[s.bubbleLabel, { color: colors.accent }]}>
+                  Sign in to create
+                </Text>
+                <Text style={[s.bubbleSub, { color: colors.textMuted, textAlign: "center" }]}>
+                  One tap sign-in · 3 free avatars
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <Text style={[s.bubbleLabel, { color: colors.text }]}>
+                  {authLoading ? "Loading..." : "Tap to capture"}
+                </Text>
+                <Text style={[s.bubbleSub, { color: colors.textMuted }]}>
+                  {`${shareCredits} free avatar${shareCredits !== 1 ? "s" : ""} remaining`}
+                </Text>
+              </>
+            )}
           </View>
         )}
 

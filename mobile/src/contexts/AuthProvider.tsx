@@ -209,7 +209,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err: any) {
       if (err.code === "ERR_REQUEST_CANCELED") return false;
-      Alert.alert("Sign In Failed", err.message || "Could not sign in with Apple.");
+      console.error("Apple sign-in error:", JSON.stringify(err, null, 2));
+      Alert.alert(
+        "Apple Sign In Failed",
+        `${err.message || "Unknown error"}\n\nCode: ${err.code || "none"}`
+      );
       return false;
     }
   }, []);

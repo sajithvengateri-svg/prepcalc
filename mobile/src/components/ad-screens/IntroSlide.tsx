@@ -5,9 +5,9 @@ export default function IntroSlide() {
   return (
     <View style={s.container}>
       <Image
-        source={require("../../../assets/images/logo.png")}
+        source={require("../../../assets/images/logo-prepmi.png")}
         style={s.logo}
-        resizeMode="cover"
+        resizeMode="contain"
       />
       <Text style={s.brand}>Prep Mi</Text>
       <View style={s.gap} />
@@ -20,7 +20,7 @@ export default function IntroSlide() {
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0F0F0F",
+    backgroundColor: "#FAFAF8",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -34,7 +34,7 @@ const s = StyleSheet.create({
   brand: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#1A1A1A",
     textAlign: "center",
   },
   gap: {
@@ -43,12 +43,12 @@ const s = StyleSheet.create({
   headline: {
     fontSize: 16,
     fontWeight: "400",
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(0,0,0,0.6)",
     textAlign: "center",
   },
   sub: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.5)",
+    color: "rgba(0,0,0,0.4)",
     textAlign: "center",
     marginTop: 6,
     lineHeight: 18,

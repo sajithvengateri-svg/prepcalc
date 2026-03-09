@@ -1,4 +1,5 @@
 import React from "react";
+import ProcessingSlide from "./ProcessingSlide";
 import IntroSlide from "./IntroSlide";
 import DashboardScreen from "./DashboardScreen";
 import RecipeCostingScreen from "./RecipeCostingScreen";
@@ -9,6 +10,7 @@ import AiScannerScreen from "./AiScannerScreen";
 import CtaSlide from "./CtaSlide";
 
 export type AdScreenPreset =
+  | "processing"
   | "intro"
   | "dashboard"
   | "recipe_costing"
@@ -19,6 +21,7 @@ export type AdScreenPreset =
   | "cta";
 
 export const AD_SCREEN_COMPONENTS: Record<AdScreenPreset, React.ComponentType> = {
+  processing: ProcessingSlide,
   intro: IntroSlide,
   dashboard: DashboardScreen,
   recipe_costing: RecipeCostingScreen,
@@ -30,6 +33,7 @@ export const AD_SCREEN_COMPONENTS: Record<AdScreenPreset, React.ComponentType> =
 };
 
 export const AD_SCREEN_TITLES: Record<AdScreenPreset, string> = {
+  processing: "",
   intro: "",
   dashboard: "Live Dashboard",
   recipe_costing: "Recipe Costing",
@@ -41,6 +45,7 @@ export const AD_SCREEN_TITLES: Record<AdScreenPreset, string> = {
 };
 
 export const AD_SCREEN_SUBTITLES: Record<AdScreenPreset, string> = {
+  processing: "",
   intro: "",
   dashboard: "Your kitchen at a glance",
   recipe_costing: "Know your cost per plate, live",
@@ -53,8 +58,10 @@ export const AD_SCREEN_SUBTITLES: Record<AdScreenPreset, string> = {
 
 // Dark background slides (bookends)
 export const DARK_SLIDES: AdScreenPreset[] = ["intro", "cta"];
+export const LIGHT_SLIDES: AdScreenPreset[] = ["processing"];
 
 export const ALL_PRESETS: AdScreenPreset[] = [
+  "processing",
   "intro",
   "dashboard",
   "recipe_costing",

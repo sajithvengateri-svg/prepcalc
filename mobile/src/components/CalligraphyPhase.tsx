@@ -36,9 +36,10 @@ interface StrokeAnimProps {
   delay: number;
   duration: number;
   masterOpacity: Animated.Value;
+  color?: string;
 }
 
-function StrokeAnim({ d, strokeWidth, delay, duration, masterOpacity }: StrokeAnimProps) {
+function StrokeAnim({ d, strokeWidth, delay, duration, masterOpacity, color = "#1A1A1A" }: StrokeAnimProps) {
   const progress = useRef(new Animated.Value(0)).current;
   // Approximate path length — generous estimate for dasharray
   const pathLen = 300;
@@ -62,7 +63,7 @@ function StrokeAnim({ d, strokeWidth, delay, duration, masterOpacity }: StrokeAn
   return (
     <AnimatedPath
       d={d}
-      stroke="#1A1A1A"
+      stroke={color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -76,9 +77,11 @@ function StrokeAnim({ d, strokeWidth, delay, duration, masterOpacity }: StrokeAn
 
 interface CalligraphyPhaseProps {
   active?: boolean;
+  dark?: boolean;
 }
 
-export default function CalligraphyPhase({ active = true }: CalligraphyPhaseProps) {
+export default function CalligraphyPhase({ active = true, dark = false }: CalligraphyPhaseProps) {
+  const strokeColor = dark ? "#FFFFFF" : "#1A1A1A";
   const [cycle, setCycle] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cycleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,7 +127,7 @@ export default function CalligraphyPhase({ active = true }: CalligraphyPhaseProp
   if (!active) return null;
 
   return (
-    <View style={st.container}>
+    <View style={[st.container, dark && { backgroundColor: "transparent" }]}>
       {/* Calligraphy canvas */}
       <View style={st.canvasWrap}>
         <Svg width={CANVAS} height={CANVAS} viewBox="-5 -25 210 210">
@@ -136,13 +139,14 @@ export default function CalligraphyPhase({ active = true }: CalligraphyPhaseProp
               delay={strokeTimings[i].delay}
               duration={strokeTimings[i].duration}
               masterOpacity={fadeAnim}
+              color={strokeColor}
             />
           ))}
         </Svg>
       </View>
 
       {/* Subtitle */}
-      <Animated.Text style={[st.subtitle, { opacity: fadeAnim }]}>
+      <Animated.Text style={[st.subtitle, { opacity: fadeAnim }, dark && { color: "rgba(255,255,255,0.35)" }]}>
         Taking a little longer than usual
       </Animated.Text>
     </View>

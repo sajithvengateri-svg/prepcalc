@@ -4,14 +4,10 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   Animated,
   Dimensions,
   Platform,
-  Alert,
-  Modal,
-  KeyboardAvoidingView,
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native";
@@ -30,12 +26,11 @@ import {
   CreditCard,
   Users,
   Lock,
-  X,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../src/contexts/ThemeProvider";
 import { useAuth } from "../../src/contexts/AuthProvider";
-import { joinWaitlist } from "../../src/lib/waitlist";
+import WaitlistSheet from "../../src/components/WaitlistSheet";
 
 const CHEF_AVATAR_KEY = "chef_avatar_url";
 
@@ -83,14 +78,9 @@ export default function HomeScreen() {
 
   // CTA popup (show once after first share)
   const [showCtaPopup, setShowCtaPopup] = useState(false);
-  const [ctaEmail, setCtaEmail] = useState("");
-  const [ctaSubmitting, setCtaSubmitting] = useState(false);
-  const [ctaJoined, setCtaJoined] = useState(false);
 
   // Bottom waitlist
-  const [waitlistEmail2, setWaitlistEmail2] = useState("");
-  const [waitlistSubmitting2, setWaitlistSubmitting2] = useState(false);
-  const [waitlistJoined2, setWaitlistJoined2] = useState(false);
+  const [showHomeWaitlist, setShowHomeWaitlist] = useState(false);
 
   // Animations
   useEffect(() => {
@@ -476,7 +466,7 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* Coming Soon — 3 Products */}
+        {/* Coming Soon — CTA */}
         <Text style={[s.sectionTitle, { color: colors.text, marginTop: 20 }]}>
           Coming Soon
         </Text>
@@ -487,9 +477,9 @@ export default function HomeScreen() {
           ]}
         >
           <View style={s.productRow}>
-            <Text style={[s.productName, { color: colors.text }]}>PrepSafe</Text>
+            <Text style={[s.productName, { color: colors.text }]}>Prep Mi Pro</Text>
             <Text style={[s.productDesc, { color: colors.textMuted }]}>
-              Food safety compliance, made easy
+              The full kitchen recipe costing, management & productivity app
             </Text>
           </View>
 
@@ -501,180 +491,46 @@ export default function HomeScreen() {
           </View>
 
           <View style={[s.productRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-            <Text style={[s.productName, { color: colors.text }]}>Prep Mi Pro</Text>
+            <Text style={[s.productName, { color: colors.text }]}>PrepSafe</Text>
             <Text style={[s.productDesc, { color: colors.textMuted }]}>
-              The full kitchen recipe costing, management & productivity app
+              Food safety compliance, made easy
             </Text>
           </View>
 
-          <TextInput
-            style={[
-              s.waitlistInput,
-              {
-                backgroundColor: colors.inputBg,
-                color: colors.text,
-                borderColor: colors.border,
-              },
-            ]}
-            placeholder="your@email.com"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={waitlistEmail2}
-            onChangeText={setWaitlistEmail2}
-          />
-          <TouchableOpacity
-            onPress={async () => {
-              tap();
-              if (!waitlistEmail2 || !waitlistEmail2.includes("@")) {
-                Alert.alert("Invalid Email", "Please enter a valid email address.");
-                return;
-              }
-              setWaitlistSubmitting2(true);
-              try {
-                await joinWaitlist(waitlistEmail2);
-                setWaitlistJoined2(true);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              } catch (e: any) {
-                Alert.alert("Oops", e.message || "Something went wrong.");
-              } finally {
-                setWaitlistSubmitting2(false);
-              }
-            }}
-            disabled={waitlistSubmitting2 || waitlistJoined2}
-            style={[
-              s.waitlistBtn,
-              {
-                backgroundColor: waitlistJoined2 ? colors.success : colors.accent,
-                opacity: waitlistSubmitting2 ? 0.6 : 1,
-              },
-            ]}
-          >
-            <Text style={s.waitlistBtnText}>
-              {waitlistJoined2
-                ? "You're on the list!"
-                : waitlistSubmitting2
-                ? "Joining..."
-                : "Join the Waitlist"}
+          <View style={[s.productRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+            <Text style={[s.productName, { color: colors.text }]}>Prep Mi Home</Text>
+            <Text style={[s.productDesc, { color: colors.textMuted }]}>
+              Get pro vibes — the ultimate kitchen help
             </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => {
+              tap();
+              setShowHomeWaitlist(true);
+            }}
+            style={[s.waitlistBtn, { backgroundColor: colors.accent }]}
+          >
+            <Text style={s.waitlistBtnText}>Join the Waitlist</Text>
           </TouchableOpacity>
-          <Text style={[s.waitlistCount, { color: colors.textMuted }]}>
-            2,847 chefs already in line
+          <Text style={[s.waitlistCount, { color: colors.accent }]}>
+            +1 free avatar credit for joining
           </Text>
         </View>
+
+        <WaitlistSheet
+          visible={showHomeWaitlist}
+          onDismiss={() => setShowHomeWaitlist(false)}
+        />
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* CTA Popup — shown once after first avatar share */}
-      <Modal
+      <WaitlistSheet
         visible={showCtaPopup}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCtaPopup(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={s.modalOverlay}
-        >
-          <View style={[s.modalSheet, { backgroundColor: colors.card }]}>
-            <View style={s.modalHandle} />
-
-            <TouchableOpacity
-              onPress={() => setShowCtaPopup(false)}
-              style={s.modalClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <X size={20} color={colors.textMuted} strokeWidth={2} />
-            </TouchableOpacity>
-
-            <View style={s.modalBody}>
-              <View style={s.modalLogo}>
-                <Camera size={24} color="#FFFFFF" strokeWidth={1.75} />
-              </View>
-              <Text style={[s.modalTitle, { color: colors.text }]}>
-                Ready to run your kitchen?
-              </Text>
-
-              <View style={s.modalProducts}>
-                <View style={[s.modalProductCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[s.modalProductName, { color: colors.text }]}>PrepSafe</Text>
-                  <Text style={[s.modalProductDesc, { color: colors.textMuted }]}>
-                    Food safety compliance, made easy
-                  </Text>
-                </View>
-                <View style={[s.modalProductCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[s.modalProductName, { color: colors.text }]}>Prep Mi Student</Text>
-                  <Text style={[s.modalProductDesc, { color: colors.textMuted }]}>
-                    Built for student chefs
-                  </Text>
-                </View>
-                <View style={[s.modalProductCard, { backgroundColor: colors.surface, borderColor: "#16A34A", borderWidth: 2 }]}>
-                  <Text style={[s.modalProductName, { color: colors.text }]}>Prep Mi Pro</Text>
-                  <Text style={[s.modalProductDesc, { color: colors.textMuted }]}>
-                    The full kitchen recipe costing, management & productivity app
-                  </Text>
-                </View>
-              </View>
-
-              <TextInput
-                style={[
-                  s.waitlistInput,
-                  {
-                    backgroundColor: colors.inputBg,
-                    color: colors.text,
-                    borderColor: colors.border,
-                    marginTop: 12,
-                  },
-                ]}
-                placeholder="your@email.com"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={ctaEmail}
-                onChangeText={setCtaEmail}
-              />
-              <TouchableOpacity
-                onPress={async () => {
-                  tap();
-                  if (!ctaEmail || !ctaEmail.includes("@")) {
-                    Alert.alert("Invalid Email", "Please enter a valid email.");
-                    return;
-                  }
-                  setCtaSubmitting(true);
-                  try {
-                    await joinWaitlist(ctaEmail);
-                    setCtaJoined(true);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    setTimeout(() => setShowCtaPopup(false), 1500);
-                  } catch (e: any) {
-                    Alert.alert("Oops", e.message || "Something went wrong.");
-                  } finally {
-                    setCtaSubmitting(false);
-                  }
-                }}
-                disabled={ctaSubmitting || ctaJoined}
-                style={[
-                  s.waitlistBtn,
-                  {
-                    backgroundColor: ctaJoined ? colors.success : colors.accent,
-                    opacity: ctaSubmitting ? 0.6 : 1,
-                    marginTop: 10,
-                  },
-                ]}
-              >
-                <Text style={s.waitlistBtnText}>
-                  {ctaJoined ? "You're on the list!" : ctaSubmitting ? "Joining..." : "Join the Waitlist"}
-                </Text>
-              </TouchableOpacity>
-
-              <Text style={[s.modalFootnote, { color: colors.textMuted }]}>
-                Not now? Find this at the bottom of the home page.
-              </Text>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        onDismiss={() => setShowCtaPopup(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -882,61 +738,10 @@ const s = StyleSheet.create({
   productRow: { paddingVertical: 12 },
   productName: { fontSize: 15, fontWeight: "700" },
   productDesc: { fontSize: 12, marginTop: 2, lineHeight: 16 },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalSheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === "ios" ? 34 : 20,
-    maxHeight: "88%",
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#D1D5DB",
-    alignSelf: "center",
-    marginTop: 10,
-    marginBottom: 12,
-  },
-  modalClose: { position: "absolute", top: 14, right: 16, zIndex: 10 },
-  modalBody: { alignItems: "center", paddingTop: 4 },
-  modalLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#16A34A",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  modalTitle: { fontSize: 18, fontWeight: "800", textAlign: "center" },
-  modalProducts: { width: "100%", gap: 8, marginTop: 16 },
-  modalProductCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-  },
-  modalProductName: { fontSize: 14, fontWeight: "700" },
-  modalProductDesc: { fontSize: 12, marginTop: 2 },
-  modalFootnote: { fontSize: 11, marginTop: 12, textAlign: "center" },
   // Waitlist
   waitlistCard: {
     borderRadius: 14,
     padding: 20,
-  },
-  waitlistInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    marginTop: 16,
   },
   waitlistBtn: {
     paddingVertical: 14,

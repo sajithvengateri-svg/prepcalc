@@ -14,7 +14,6 @@ import {
   AD_SCREEN_COMPONENTS,
   AD_SCREEN_TITLES,
   AD_SCREEN_SUBTITLES,
-  DARK_SLIDES,
   ALL_PRESETS,
   type AdScreenPreset,
 } from "./ad-screens";
@@ -77,9 +76,6 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
   if (slides.length === 0) return null;
 
   const currentSlide = slides[currentIndex];
-  const isDark = DARK_SLIDES.includes(currentSlide);
-  const title = AD_SCREEN_TITLES[currentSlide];
-  const subtitle = AD_SCREEN_SUBTITLES[currentSlide];
 
   return (
     <Animated.View style={[st.container, { opacity: fadeAnim }]}>
@@ -94,7 +90,6 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
       >
         {slides.map((preset) => {
           const ScreenComponent = AD_SCREEN_COMPONENTS[preset];
-          const slideIsDark = DARK_SLIDES.includes(preset);
           const slideTitle = AD_SCREEN_TITLES[preset];
           const slideSub = AD_SCREEN_SUBTITLES[preset];
 
@@ -104,15 +99,15 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
               activeOpacity={1}
               style={st.slide}
             >
-              <View style={[st.screenContent, { backgroundColor: slideIsDark ? "#0F0F0F" : "#FAFAF8" }]}>
+              <View style={[st.screenContent, { backgroundColor: "#FAFAF8" }]}>
                 {/* Header overlay for feature slides (not intro/cta) */}
                 {slideTitle ? (
                   <View style={st.slideHeader}>
-                    <Text style={[st.slideTitle, { color: slideIsDark ? "#FFFFFF" : "#1A1A1A" }]}>
+                    <Text style={[st.slideTitle, { color: "#1A1A1A" }]}>
                       {slideTitle}
                     </Text>
                     {slideSub ? (
-                      <Text style={[st.slideSub, { color: slideIsDark ? "#9CA3AF" : "#6B7280" }]}>
+                      <Text style={[st.slideSub, { color: "#6B7280" }]}>
                         {slideSub}
                       </Text>
                     ) : null}
@@ -136,8 +131,6 @@ export default function AdSlideshow({ active = true }: AdSlideshowProps) {
               style={[
                 st.dot,
                 i === currentIndex ? st.dotActive : st.dotInactive,
-                isDark && i === currentIndex && { backgroundColor: "#16A34A" },
-                isDark && i !== currentIndex && { backgroundColor: "rgba(255,255,255,0.3)" },
               ]}
             />
           ))}

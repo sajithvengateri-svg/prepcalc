@@ -130,7 +130,7 @@ export default function AuthSheet({ visible, onDismiss, onSuccess }: AuthSheetPr
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+        style={{ flex: 1, justifyContent: "flex-end" }}
       >
         <TouchableOpacity
           style={st.overlay}
@@ -338,8 +338,6 @@ const st = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 40 : 24,
     paddingTop: 12,
     alignItems: "center",
-    flexGrow: 1,
-    justifyContent: "flex-end",
   },
   handle: {
     width: 40,
