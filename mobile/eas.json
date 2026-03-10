@@ -22,7 +22,6 @@
       "distribution": "store",
       "credentialsSource": "remote",
       "node": "22.12.0",
-      "autoSubmit": true,
       "ios": {
         "autoIncrement": true
       }
