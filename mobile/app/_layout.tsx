@@ -1,10 +1,17 @@
 import { Stack } from "expo-router";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { ThemeProvider } from "../src/contexts/ThemeProvider";
 import { AuthProvider } from "../src/contexts/AuthProvider";
+
+const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
+      <StripeProvider
+        publishableKey={STRIPE_PUBLISHABLE_KEY}
+        merchantIdentifier="merchant.au.prepmi.prepcalc"
+      >
       <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -66,6 +73,7 @@ export default function RootLayout() {
         />
       </Stack>
       </AuthProvider>
+      </StripeProvider>
     </ThemeProvider>
   );
 }

@@ -10,15 +10,17 @@ import {
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Platform,
 } from "react-native";
 import {
   Palette,
   Camera,
   Sparkles,
   Share2,
+  ChevronRight,
 } from "lucide-react-native";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface OnboardingProps {
   visible: boolean;
@@ -29,75 +31,57 @@ const SLIDES = [
   {
     icon: Palette,
     accent: "#EF4444",
+    bg: "#FEF2F2",
     title: "Pick Your Style",
-    body: "Choose from Anime, Ghibli, Pixel or Comic.\nThen pick a mode — classic avatar,\nKitchen Pass ID, or Manga crew.",
+    body: "Choose from Anime, Ghibli, Pixel or Comic — then pick a mode like classic avatar, Kitchen Pass ID, or Manga crew.",
   },
   {
     icon: Camera,
     accent: "#2563EB",
+    bg: "#EFF6FF",
     title: "Snap a Selfie",
-    body: "Tap the camera bubble and take\na quick photo. Front or back camera,\nyour call.",
+    body: "Tap the camera bubble and take a quick photo. Front or back camera, your call.",
   },
   {
     icon: Sparkles,
     accent: "#7C3AED",
+    bg: "#F5F3FF",
     title: "Watch the Magic",
-    body: "Sit back while AI transforms your\nphoto. We'll keep you entertained\nwith fun animations while you wait.",
+    body: "Sit back while AI transforms your photo. We'll keep you entertained with fun animations while you wait.",
   },
   {
     icon: Share2,
     accent: "#16A34A",
+    bg: "#F0FDF4",
     title: "Save & Share",
-    body: "Download your avatar, share it\nwith friends, or set it as your\nprofile pic. Sharing is always free!",
+    body: "Download your avatar, share it with friends, or set it as your profile pic. Sharing is always free!",
   },
 ];
 
-// Animated icon wrapper — each icon gets a looping pulse + gentle rotate
+// Animated icon with gentle pulse
 function AnimatedIcon({ Icon, color, isActive }: { Icon: typeof Camera; color: string; isActive: boolean }) {
   const scale = useRef(new Animated.Value(1)).current;
-  const rotate = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!isActive) {
       scale.setValue(1);
-      rotate.setValue(0);
       return;
     }
 
-    // Pulse scale
     const pulseLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(scale, { toValue: 1.15, duration: 800, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ])
-    );
-
-    // Gentle wobble rotate
-    const rotateLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(rotate, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(rotate, { toValue: -1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(rotate, { toValue: 0, duration: 600, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1.1, duration: 900, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     );
 
     pulseLoop.start();
-    rotateLoop.start();
-
-    return () => {
-      pulseLoop.stop();
-      rotateLoop.stop();
-    };
+    return () => pulseLoop.stop();
   }, [isActive]);
 
-  const rotateInterp = rotate.interpolate({
-    inputRange: [-1, 0, 1],
-    outputRange: ["-8deg", "0deg", "8deg"],
-  });
-
   return (
-    <Animated.View style={{ transform: [{ scale }, { rotate: rotateInterp }] }}>
-      <Icon size={36} color={color} strokeWidth={2} />
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Icon size={32} color={color} strokeWidth={1.8} />
     </Animated.View>
   );
 }
@@ -109,20 +93,21 @@ export default function OnboardingWalkthrough({ visible, onDone }: OnboardingPro
 
   useEffect(() => {
     if (visible) {
+      setCurrentIndex(0);
       fadeIn.setValue(0);
-      Animated.timing(fadeIn, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      Animated.timing(fadeIn, { toValue: 1, duration: 350, useNativeDriver: true }).start();
     }
   }, [visible]);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    const index = Math.round(e.nativeEvent.contentOffset.x / CARD_WIDTH);
     if (index >= 0 && index < SLIDES.length) setCurrentIndex(index);
   };
 
   const goNext = () => {
     if (currentIndex < SLIDES.length - 1) {
       const next = currentIndex + 1;
-      scrollRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
+      scrollRef.current?.scrollTo({ x: next * CARD_WIDTH, animated: true });
       setCurrentIndex(next);
     } else {
       onDone();
@@ -130,13 +115,19 @@ export default function OnboardingWalkthrough({ visible, onDone }: OnboardingPro
   };
 
   const isLast = currentIndex === SLIDES.length - 1;
+  const slide = SLIDES[currentIndex];
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={onDone}>
       <Animated.View style={[s.backdrop, { opacity: fadeIn }]}>
         <View style={s.card}>
-          {/* Brand header stripe */}
-          <View style={[s.headerStripe, { backgroundColor: SLIDES[currentIndex].accent }]} />
+          {/* Accent bar */}
+          <View style={[s.accentBar, { backgroundColor: slide.accent }]} />
+
+          {/* Step counter */}
+          <Text style={s.stepLabel}>
+            {currentIndex + 1} of {SLIDES.length}
+          </Text>
 
           <ScrollView
             ref={scrollRef}
@@ -146,15 +137,20 @@ export default function OnboardingWalkthrough({ visible, onDone }: OnboardingPro
             onScroll={handleScroll}
             scrollEventThrottle={16}
           >
-            {SLIDES.map((slide, i) => {
-              const Icon = slide.icon;
+            {SLIDES.map((sl, i) => {
+              const Icon = sl.icon;
               return (
                 <View key={i} style={s.slide}>
-                  <View style={[s.iconCircle, { borderColor: slide.accent + "40" }]}>
-                    <AnimatedIcon Icon={Icon} color={slide.accent} isActive={currentIndex === i} />
+                  {/* Icon circle */}
+                  <View style={[s.iconCircle, { backgroundColor: sl.bg }]}>
+                    <AnimatedIcon Icon={Icon} color={sl.accent} isActive={currentIndex === i} />
                   </View>
-                  <Text style={s.title}>{slide.title}</Text>
-                  <Text style={s.body}>{slide.body}</Text>
+
+                  {/* Title */}
+                  <Text style={s.title}>{sl.title}</Text>
+
+                  {/* Body */}
+                  <Text style={s.body}>{sl.body}</Text>
                 </View>
               );
             })}
@@ -162,14 +158,14 @@ export default function OnboardingWalkthrough({ visible, onDone }: OnboardingPro
 
           {/* Dots */}
           <View style={s.dots}>
-            {SLIDES.map((slide, i) => (
+            {SLIDES.map((sl, i) => (
               <View
                 key={i}
                 style={[
                   s.dot,
                   i === currentIndex
-                    ? { backgroundColor: slide.accent, width: 20 }
-                    : { backgroundColor: "rgba(255,255,255,0.25)", width: 7 },
+                    ? { backgroundColor: sl.accent, width: 22 }
+                    : { backgroundColor: "#D1D5DB", width: 7 },
                 ]}
               />
             ))}
@@ -177,14 +173,16 @@ export default function OnboardingWalkthrough({ visible, onDone }: OnboardingPro
 
           {/* Buttons */}
           <View style={s.btnRow}>
-            <TouchableOpacity onPress={onDone} style={s.skipBtn}>
+            <TouchableOpacity onPress={onDone} style={s.skipBtn} activeOpacity={0.6}>
               <Text style={s.skipText}>Skip</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={goNext}
-              style={[s.nextBtn, { backgroundColor: SLIDES[currentIndex].accent }]}
+              activeOpacity={0.8}
+              style={[s.nextBtn, { backgroundColor: slide.accent }]}
             >
               <Text style={s.nextText}>{isLast ? "Let's Go!" : "Next"}</Text>
+              {!isLast && <ChevronRight size={18} color="#FFFFFF" strokeWidth={2.5} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -201,55 +199,80 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "rgba(0,0,0,0.8)",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   card: {
     width: CARD_WIDTH,
-    borderRadius: 24,
-    backgroundColor: "#0F0F0F",
-    paddingBottom: 20,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    paddingBottom: 24,
     overflow: "hidden",
+    // Glass shadow
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
   },
-  headerStripe: {
+  accentBar: {
     height: 4,
     width: "100%",
-    marginBottom: 28,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+  stepLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   slide: {
     width: CARD_WIDTH,
     alignItems: "center",
-    paddingHorizontal: 28,
+    paddingHorizontal: 32,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 12,
-    color: "#FFFFFF",
+    color: "#1A1A1A",
+    letterSpacing: -0.3,
   },
   body: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 23,
     textAlign: "center",
-    color: "rgba(255,255,255,0.6)",
+    color: "#6B7280",
+    paddingHorizontal: 4,
   },
   dots: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    marginTop: 28,
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 24,
   },
   dot: {
     height: 7,
@@ -262,18 +285,21 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
   },
   skipBtn: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
   },
   skipText: {
     fontSize: 15,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
+    color: "#9CA3AF",
   },
   nextBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 13,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
   nextText: {
     color: "#FFFFFF",

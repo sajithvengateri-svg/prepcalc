@@ -47,6 +47,7 @@ import PaintSplash from "../../src/components/PaintSplash";
 import AuthSheet from "../../src/components/AuthSheet";
 import CalligraphyPhase from "../../src/components/CalligraphyPhase";
 import OnboardingWalkthrough from "../../src/components/OnboardingWalkthrough";
+import BuyCreditsSheet from "../../src/components/BuyCreditsSheet";
 
 type AvatarStyle = "Anime" | "Ghibli" | "Pixel" | "Comic";
 type AvatarMode = "standard" | "kitchen_pass" | "manga_menu";
@@ -114,7 +115,7 @@ export default function AvatarScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, profile, useAvatarCredit, isLoading: authLoading } = useAuth();
+  const { user, profile, useAvatarCredit, refreshProfile, isLoading: authLoading } = useAuth();
   const [showNoCreditModal, setShowNoCreditModal] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>("Anime");
   const [selectedMode, setSelectedMode] = useState<AvatarMode>("standard");
@@ -125,6 +126,7 @@ export default function AvatarScreen() {
   const [genError, setGenError] = useState<string | null>(null);
   const [statusIndex, setStatusIndex] = useState(0);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showFeaturePreview, setShowFeaturePreview] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [inCalligraphyPhase, setInCalligraphyPhase] = useState(false);
@@ -1171,6 +1173,12 @@ export default function AvatarScreen() {
         onDone={handleOnboardingDone}
       />
 
+      <BuyCreditsSheet
+        visible={showBuyCredits}
+        onDismiss={() => setShowBuyCredits(false)}
+        onSuccess={() => refreshProfile()}
+      />
+
       {/* 0-Credit Prompt Modal */}
       <Modal
         visible={showNoCreditModal}
@@ -1219,7 +1227,7 @@ export default function AvatarScreen() {
             <TouchableOpacity
               onPress={() => {
                 setShowNoCreditModal(false);
-                router.push("/settings/buy-credits");
+                setShowBuyCredits(true);
               }}
               style={[s.noCreditBuyBtn, { borderColor: colors.accent }]}
             >

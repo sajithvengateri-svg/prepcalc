@@ -56,7 +56,8 @@
         {
           "cameraPermission": "PrepCam needs camera access for the Anime Chef Studio feature."
         }
-      ]
+      ],
+      "@stripe/stripe-react-native"
     ]
   }
 }
