@@ -57,7 +57,13 @@
           "cameraPermission": "PrepCam needs camera access for the Anime Chef Studio feature."
         }
       ],
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.au.prepmi.prepcalc",
+          "enableGooglePay": false
+        }
+      ]
     ]
   }
 }
